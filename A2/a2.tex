@@ -1,0 +1,201 @@
+\documentclass{article}
+
+\usepackage{fullpage}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{parskip}
+\usepackage{amssymb}
+\usepackage{nicefrac}
+\usepackage{listings} % For displaying code
+\usepackage{algorithm2e} % pseudo-code
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage[thinc]{esdiff}
+
+%%
+%% Julia definition (c) 2014 Jubobs
+%%
+\lstdefinelanguage{Julia}%
+  {morekeywords={abstract,break,case,catch,const,continue,do,else,elseif,%
+      end,export,false,for,function,immutable,import,importall,if,in,%
+      macro,module,otherwise,quote,return,switch,true,try,type,typealias,%
+      using,while},%
+   sensitive=true,%
+   alsoother={\$},%
+   morecomment=[l]\#,%
+   morecomment=[n]{\#=}{=\#},%
+   morestring=[s]{"}{"},%
+   morestring=[m]{'}{'},%
+}[keywords,comments,strings]%
+
+\lstset{%
+    language         = Julia,
+    basicstyle       = \ttfamily,
+    keywordstyle     = \bfseries\color{blue},
+    stringstyle      = \color{magenta},
+    commentstyle     = \color{ForestGreen},
+    showstringspaces = false,
+}
+% Answers
+\def\ans#1{\par\gre{Answer: #1}}
+%\def\ans#1{} % Comment this line to produce document with answers
+
+% Colors
+\definecolor{blu}{rgb}{0,0,1}
+\def\blu#1{{\color{blu}#1}}
+\definecolor{gre}{rgb}{0,.5,0}
+\def\gre#1{{\color{gre}#1}}
+\definecolor{red}{rgb}{1,0,0}
+\def\red#1{{\color{red}#1}}
+\def\norm#1{\|#1\|}
+
+% Math
+\def\R{\mathbb{R}}
+\def\argmax{\mathop{\rm arg\,max}}
+\def\argmin{\mathop{\rm arg\,min}}
+\newcommand{\mat}[1]{\begin{bmatrix}#1\end{bmatrix}}
+\newcommand{\alignStar}[1]{\begin{align*}#1\end{align*}}
+\def\half{\frac 1 2}
+\def\cond{\; | \;}
+
+% LaTeX
+\newcommand{\fig}[2]{\includegraphics[width=#1\textwidth]{#2}}
+\newcommand{\centerfig}[2]{\begin{center}\includegraphics[width=#1\textwidth]{#2}\end{center}}
+\def\items#1{\begin{itemize}#1\end{itemize}}
+\def\enum#1{\begin{enumerate}#1\end{enumerate}}
+
+
+\begin{document}
+
+\title{CPSC 440/540 Machine Learning (January-April, 2022)\\Assignment 2 (due Friday February 11th at midnight)}
+\author{}
+\date{}
+\maketitle
+\vspace{-4em}
+
+The assignment instructions are the same as for the previous assignment, but for this assignment you can work in groups of 1-2. However, please only hand in one assignment for the group.
+
+
+\blu{\enum{
+\item Name(s): Wira Azmoon Ahmad
+\item Student ID(s): 55246318
+}}
+
+\section{Bernoulli Distributions}
+
+\subsection{Inference}
+
+Consider a Bernoulli distribution with $\theta = 0.12$.
+\enum{
+\item Suppose we generate 10 IID samples $\{x^1,x^2,...,x^{10}\}$ according to this model. \blu{What is the probability that all 10 samples are equal to 0?}
+\ans{
+\[\Pr (x^1=x^2=...=x^{10}=0) = (1-0.12)^{10} = 0.278500976\]
+}
+\item \blu{What is the probability that exactly one sample is equal to 1, and the other 9 are equal to 0?}
+\ans{
+\[\Pr(\text{1 sample equal 1, other 9 equal 0}) = 10 \times (1-0.12)^9 (0.12) = 0.3797740582\] 
+}
+\item Suppose we need to base decisions on samples from this dataset, and so we want collect a set of 1000 samples. \blu{Would it make sense to chose the decoding of the 1000 samples (the ``most likely'' samples to be seen) to make decisions? Explain why or why not?}
+\ans{No. Decoding would infer that all 1000 samples will be equal to 0. Depending on the use case, making a decision based on this may not be helpful. To predict 0 COVID cases for example would not contribute to better policies.}
+\item Write a function that generates $t$ IID examples from this distribution, that uses Julia's \emph{rand()} function as the source of IID randomness (assuming that each call to \emph{rand()} returns a number uniformly-distributed between 0 and 1). \blu{Hand in the code.}
+\ans{\lstinputlisting[firstline=3,lastline=5]{bernoulli.jl}}
+\pagebreak
+\item Consider a game where you get \$1 if a sample from this distribution is 0, and lose \$5 if the sample is 1. \blu{What is the expected  \$ value you get from playing this game?}
+\ans{
+\[E(X)=1\times (1-0.12) - 5 \times 0.12 = \$0.28\]
+}
+\item A way to approximate the answer of the previous question is given by
+\[
+\frac 1 t \sum_{i=1}^t f(x^i),
+\]
+where each $x^i$ is one of $t$ IID sample and $f$ gives the \$ value for that sample (either 1 or -5). Implement this approximation, and \blu{hand in a plot the of value of this approximation as you vary the number of samples $t$ from 1 to 100,000}.
+\centerfig{.5}{approx.png}
+\item Suppose that you wanted to compute the expected number of samples from this Bernoulli that you would need to generate before seeing 10 values of 1. It  possible to compute this expectation exactly, but suppose we really like sampling and we are too lazy to do the exact calculation. \blu{Give an approximation of this quantity based on generating samples, similar to the one used in Part 6.}
+\ans{Approximated value: $83.31604$
+\centerfig{.5}{approx10.png}}
+\newpage
+\item Suppose that the \emph{rand()} function was broken in the new version of Julia, in the sense that the numbers it returned were found to not look like uniform samples.\footnote{Some published research works have had to be revised due to bad random number generators.} Also suppose that the \emph{randn()} function, which generates samples from a standard normal distribution, worked well. \blu{Describe a way to generate samples from a Bernoulli distribution that relies on the \emph{randn()} function instead of the \emph{rand()} function.} Hint: you may to look up the CDF (and its inverse the ``quantile'' function) of the standard normal distribution.
+\ans{Using the quantile function $Q$ of the normal distribution, the value obtained from \emph{randn()} can be compared with $Q(0.12)$. A sample is equal to 1 iff
+\[randn() \leq Q(0.12)\]
+}
+}
+\pagebreak
+
+\subsection{Learning}
+
+\enum{
+\item Consider a dataset consisting of binary samples $\{x^1,x^2,\dots,x^n\}$. Consider the binomial likelihood for such a dataset,
+\[
+p(x^1, x^2,\dots, x^n \cond \theta) = {n \choose k}\theta^k(1-\theta)^{n - k},
+\]
+where $k = \sum_{i=1}^nx^i$ is the number of 1 values in the dataset and${n \choose k} = \frac{n!}{k!(n-k)!}$ is the number o of combinations of $k$ items that exist among $n$ items. This likelihood measures the probability of seeing exactly $k$ values of $1$ in the dataset, as opposed to the Bernoulli likelihood which measures the likelihood of seeing the precise sequence $x^1$, $x^2$, through $x^n$.
+\blu{Derive the MAP estimate of $\theta$ for this model if we use a beta prior on $\theta$ with hyper-parameters $\alpha$ and $\beta$.} You can assume that $k$ and $(n-k)$ are both positive. You can also assume that the data is independent of the hyper-parameters if we condition on the parameters, which mathematically is equivalent to $p(X \cond \theta, \alpha, \beta) = p(X \cond \theta)$.
+\ans{
+\begin{equation}
+\begin{aligned}
+    \Pr(\theta | X,\alpha,\beta) 
+    & \propto \Pr(X | \theta,\alpha,\beta) \Pr(\theta|\alpha,\beta)\\
+    & \propto \Pr(X | \theta) \theta^{\alpha-1}(1-\theta)^{\beta-1}\\
+    & \propto \theta^k(1-\theta)^{n - k}
+    \theta^{\alpha-1}(1-\theta)^{\beta-1}\\
+    &= \theta^{k+\alpha-1}(1-\theta)^{n-k+\beta-1}
+\end{aligned}
+\end{equation}
+\[\log\Pr(\theta | X,\alpha,\beta) \propto
+(k+\alpha-1)\log\theta + (n-k+\beta-1)\log(1-\theta)
+\]
+Finding the derivative of the expression wrt $\theta$ and equating to 0,
+\[\frac{k+\alpha-1}{\theta}-\frac{n-k+\beta-1}{1-\theta}=0\]
+\[(1-\theta)(k+\alpha-1)=\theta(n-k+\beta-1)\]
+\[\theta = \frac{k+\alpha-1}{n+\alpha+\beta-2}\]
+Since
+\[\theta_{MAP} \in \argmax_{\theta}{\Pr(X | \theta) \Pr(\theta)}\]
+\[\theta_{MAP} = \frac{k+\alpha-1}{n+\alpha+\beta-2}\]
+}
+\pagebreak
+\item We often use Bernoulli distributions as parts of more-complicated distributions. In these cases we often to need to maximize a weighted log-likelihood of the form
+\[
+f(\theta) = \sum_{i=1}^n v^i \log p(x^i \cond \theta),
+\]
+where each $v^i$ is a non-negative weight for example $i$. \blu{Derive the MLE for this model when we use a Bernoulli likelihood for $p(x^i \cond \theta)$.}
+\ans{
+\[f(\theta) = \sum_{i=1}^n v^i (x^i \log\theta + (1-x^i)\log(1-\theta))\]
+\begin{equation}
+\begin{aligned}
+    \diff{f}{\theta}
+    &= \sum_{i=1}^n v^i \left(\frac{x^i}{\theta} 
+    - \frac{1-x^i}{1-\theta}\right)\\
+    &= \sum_{i=1}^n v^i \frac{x^i(1-\theta) - (1-x^i)\theta}
+    {\theta(1-\theta)}\\
+    &= \frac{1}{\theta(1-\theta)} \sum_{i=1}^n v^i (x^i - \theta)\\
+    &= \frac{1}{\theta(1-\theta)} 
+    \left(\sum_{i=1}^n v^i x^i - \theta\sum_{i=1}^n v^i\right)\\
+    &= 0
+\end{aligned}
+\end{equation}
+Thus,
+\[\theta_{MLE} = \frac{\sum_{i=1}^n v^i x^i}{\sum_{i=1}^n v^i}\]
+}
+}
+\pagebreak
+
+\section{Multivariate and Conditional Bernoullis}
+
+Coming soon.
+
+
+\section{Neural Networks}
+
+Coming soon.
+
+
+\section{Very-Short Answer Questions}
+
+Coming soon.
+
+
+
+ 
+\end{document}

@@ -22,7 +22,7 @@ err = Inf
 # Fit least squares model
 include("leastSquaresRBFL2.jl")
 include("misc.jl")
-# model = leastSquaresRBFL2(X,y,1,1)
+# model = leastSquaresRBFL2(X,y,8,1.9)
 
 function getModel(Xtr, ytr, Xv, yv)
     s = 0
@@ -52,8 +52,6 @@ function getModel(Xtr, ytr, Xv, yv)
             end
         end
     end
-    println("found sigma & lambda: ", s, ",", l)
-    println("error:", err)
     return model
 end
 
