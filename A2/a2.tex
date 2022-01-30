@@ -12,7 +12,11 @@
 \usepackage{listings} % For displaying code
 \usepackage{algorithm2e} % pseudo-code
 \usepackage[usenames,dvipsnames]{xcolor}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathtools}
 \usepackage[thinc]{esdiff}
+\usepackage{tikz}
 
 %%
 %% Julia definition (c) 2014 Jubobs
@@ -100,7 +104,7 @@ Consider a Bernoulli distribution with $\theta = 0.12$.
 \item Suppose we need to base decisions on samples from this dataset, and so we want collect a set of 1000 samples. \blu{Would it make sense to chose the decoding of the 1000 samples (the ``most likely'' samples to be seen) to make decisions? Explain why or why not?}
 \ans{No. Decoding would infer that all 1000 samples will be equal to 0. Depending on the use case, making a decision based on this may not be helpful. To predict 0 COVID cases for example would not contribute to better policies.}
 \item Write a function that generates $t$ IID examples from this distribution, that uses Julia's \emph{rand()} function as the source of IID randomness (assuming that each call to \emph{rand()} returns a number uniformly-distributed between 0 and 1). \blu{Hand in the code.}
-\ans{\lstinputlisting[firstline=3,lastline=5]{bernoulli.jl}}
+\ans{\lstinputlisting[firstline=3,lastline=5]{a2/bernoulli.jl}}
 \pagebreak
 \item Consider a game where you get \$1 if a sample from this distribution is 0, and lose \$5 if the sample is 1. \blu{What is the expected  \$ value you get from playing this game?}
 \ans{
@@ -183,8 +187,126 @@ Thus,
 
 \section{Multivariate and Conditional Bernoullis}
 
-Coming soon.
+\subsection{Naive Bayes}
 
+If you run the script \emph{example\_mnist35\_naiveNaiveBayes}, it will load training and test MNIST digits 3 and 5. It will then discretize the features into binary values, and fit a ``naive'' naive Bayes model. In particular, the naive naive Bayes model is a generative classifier that assumes $p(x_1, x_2,\dots,x_d,y)$ is product of Bernoullis. This model has a high test error, since the features do not affect the predictions.
+
+\enum{
+\item The regular naive Bayes model discussed in class writes the joint probability of a data $\{X,y\}$ as
+\begin{align*}
+p(X, y) & = \prod_{i=1}^n \left[p(y^i)\prod_{j=1}^d p(x_j^i \cond y^i)\right]\\
+& = \prod_{i=1}^n \left[ \theta^{y^i}(1-\theta)^{1-y^i}\prod_{j=1}^d \theta_{jy}^{x_j^i}(1-\theta_{jy})^{1-x_j^i}\right],
+\end{align*}
+where we have used a Bernoulli to parameterize $p(y^i)$ and a Bernoulli-like distribution to parameterize the conditionals $p(x_j \cond y)$. \blu{Show how to derive the MLE for a particular value of $\theta_{jc}$.}
+\ans{
+\begin{equation}
+\begin{aligned}
+    \log\Pr(X,y) 
+    &= \sum_{i=1}^n \log \left[ \theta^{y^i}(1-\theta)^{1-y^i}
+    \prod_{j=1}^d \theta_{jy}^{x_j^i}(1-\theta_{jy})^{1-x_j^i}\right]\\
+    &= \sum_{i=1}^n \left[
+        y^i \log\theta + (1-y^i)\log(1-\theta)
+        + \sum_{j=1}^d \left(
+            x_j^i \log\theta_{jy}
+            + (1-x_j^i)\log(1-\theta_{jy})
+        \right)
+    \right]\\
+\end{aligned}
+\end{equation}
+\begin{equation}
+\begin{aligned}
+    \diff{\log\Pr(X,y)}{\theta_{jc}}
+    &= \sum_{y^i=c}
+    \left(\frac{x_j^i}{\theta_{jc}}
+    - \frac{1-x_j^i}{1-\theta_{jc}}\right)\\
+    &= \sum_{y^i=c} \frac{x_j^i - \theta_{jc}}
+    {\theta_{jc}(1-\theta_{jc})}\\
+    &= 0
+\end{aligned}
+\end{equation}
+\[\sum_{y^i=c} (x_j^i-\theta_{jc})=0\]
+\[\sum_{y^i=c}\theta_{jc,MLE} = \sum_{y^i=c} x_j^i\]
+Essentially, the MLE estimate is the proportion of examples with $y^i=c$ that have feature $j$.
+}
+\pagebreak
+\item Even though the naive Bayes likelihood has many parameters, the MLE for a particular parameter $\theta_{jc}$ does not depend on $\theta$ or any any $\theta_{j'c'}$ with $j\neq j'$ and $c' \neq c$. \blu{Explain why these terms do not appear in the MLE.} (You should not use the word ``independence'' in your answer. Instead explain how the form of the log-likelihood makes them not depend on each other.)
+\ans{The log likehood turns the original product into a sum of logs. When differentiated with respect to $\theta_{jc}$, the other parameters are constant terms and become 0.}
+\item Modify the naive naive Bayes code to implement the standard naive Bayes classifier. \blu{Hand in your code and report the the test error that you obtain}. Hint: start from the function \emph{naiveNaiveBayes} and replace the $d \times 1$ variable \emph{p\_x} with a $d \times 2$ variable \emph{p\_xy} that will represnt $\theta_{jc}$. Hint: you can look at subsequent questions to get an idea of what the final error should be.
+\ans{
+Obtained \texttt{Error rate = 0.10}
+\lstinputlisting{a2/naiveBayes.jl}
+}
+\pagebreak
+\item Instead of assuming that all variables are independent given the class label, a less-naive model called ``chain-augmented naive Bayes'' (CANB) assumes that variables follow a Markov chain given the class label. This leads to a joint likelihood of the form
+\[
+p(x_1^i, x_2^i,\dots,x_d^i, y^i) = p(y^i)p(x_1^i \cond y^i)\prod_{j=2}^d p(x_j^i \cond x_{j-1}^i, y^i),
+\]
+where features 2:$d$ depend on not only on the class label but also on the value of the feature that comes ``before'' it in the ordering 1:$d$. This captures the fact that adjacent pixels in the image tend to be correlated with each other.
+Using MLE to estimate the parameters of this model leads to test error of 0.24, while if you add Laplace smoothing it achieves a better test error of 0.14 (which is still worse than naive Bayes). On the other hand, adding Laplace smoothing to naive Bayes does not change the test error for this data. \blu{Explain why Laplace smoothing improves the test error of CANB, while for naive Bayes it does not affect the test error.}
+\ans{
+Laplace smoothing helps against overfitting for CANB, since the "imaginary" data might be able to account for orderings that were not captured for CANB, whereas for naive Bayes, the ordering of the features does not matter, so it would not affect the test error.
+}
+\item With Laplace smoothing, the CANB from the previous question obtains a much-higher test-set likelihood than naive Bayes. In other words, $p(\tilde{X}, \tilde{y})$ for new data is much higher for the CANB model than naive Bayes. \blu{Explain why the CANB model might give worse test error even though it gives a much-better test set likelihood.}
+}
+\ans{
+The CANB model may still assign even higher likelihoods to the incorrect classification of test examples, and therefore give a worse test error.
+}
+\pagebreak
+
+\subsection{Vector-Quantized Naive Bayes}
+
+If you run the script \emph{example\_mnist35\_logistic}, it will fit a logistic regression model that acheives a lower test error on the MNIST 3 and 5 digits than naive Bayes does. In this question we will consider one way to make naive Bayes less naive in order to improve its performance.
+
+\enum{
+\item It seems reasonable that there would be clusters in the classes. For example, there might several different ways to draw the digit `3'. Instead of assuming that the features are independent given the class label, we might instead assume they are independent given the cluster that they are in. Consider a \emph{vector-quantized naive Bayes} (VQNB) that implements this idea:
+\items{
+\item It clusters the \emph{examples associated with each digit} into $k$ clusters, using k-means clustering (so there will be $k$ clusters for each class and $2k$ clusters total). We will use $z^i$ as the cluster number of example $i$. The value $z^i$ will be from $1$ to $k$, with $y^i$ determining whether we are considering the $k$ ``3'' clusters or the $k$ ``5'' clusters.
+\item Since we do not know $z^i$ (it is a ``latent'' variable), we need to use the marginalization rule to consider its possible values. Using the marginalization and then the product rule, we can write the joint probability as
+\begin{align*}
+p(x_1^i, x_2^i,\dots,x_d^i, y^i) & = \sum_{z = 1}^k p(x_1^i, x_2^i,\dots,x_d^i, y^i, z)\\
+& = \sum_{z=1}^k  p(x_1^i, x_2^i,\dots,x_d^i \cond y^i, z)p(y^i, z)\\
+& = \sum_{z=1}^k  p(x_1^i, x_2^i,\dots,x_d^i \cond y^i, z)p(z \cond y^i)p(y^i)\\
+& = p(y^i)\sum_{z=1}^k  p(z \cond y^i)\prod_{j=1}^d p(x_j^i \cond y^i, z),
+\end{align*}
+where the last line is using the independence of the features given the cluster.
+}
+Make a version of your naive Bayes code that implements the VQNB method. \blu{Hand in your code and the test error you obtain with this model for $k=2$ through $k=5$.}. Hints:
+\items{
+\item You can use the variable \emph{p\_y} as before. You will need a new variable \emph{p\_zy}  that is $k \times 2$ representing $p(z = c \cond y^i = b)$. The MLE for an element \emph{p\_zy[c,b]} of the matrix is (number of times that $y^i=b$ and $z^i=c$)/(number of times $y^i = b)$.\footnote{We will derive this MLE for $k$-valued discrete variables in the next part of the course.} 
+\item You can replace \emph{p\_xy} with \emph{p\_xyz} which will be a $d$ by $2$ by $k$ array giving the value $p(x_j^i = 1 \cond y^i = b, z^i= c)$. The MLE for the value \emph{p\_xyz[j,b,c]} is (number of times $y^i=b$ and $z^i = c$ and $x_j^i=1$)/(number of times $y^i=b$ and $z^i=c$).
+\item To help with debugging, note that you should get the naive Bayes model in the special case of $k=1$. Further, with this type of model you usually see the biggest performance gain when going from $k=1$ to $k=2$.
+\item You may not be able to exactly match the performance of logistic regression.
+}
+\ans{
+Obtained error rates:\\
+\texttt{k = 2 : Error rate = 0.07\\
+k = 3 : Error rate = 0.06\\
+k = 4 : Error rate = 0.05\\
+k = 5 : Error rate = 0.05}
+\lstinputlisting{a2/vqnb.jl}
+}
+\pagebreak
+\item \blu{What is the cost of making a prediction with this model?}
+\ans{
+\[O(tkd)\]
+For $t$ training examples, summing over $k$ clusters, each with a product of $d$ features. This assumes only 2 classes.
+}
+\item For a run of the method with $k=5$, \blu{show the images obtained by plotting the estimates for $p(x_j = 1 \cond z, y)$ for all $j$ as a 28 by 28 image, for each value of $z$ and $y$} (so there should be 10 images). Hint: if you want to view image $i$ with \emph{PyPlot}, you could use \texttt{imshow(reshape(X[i,:],28,28)',``gray'')}.
+\ans{
+\foreach \x in {1,2}
+{ \foreach \y in {1,2,3,4,5}
+    { 
+        \includegraphics{a2/p\_xyz\_\y\_\x.png}
+        % \caption{Cluster \y of class \x}
+    }
+}
+}
+\item The logistic regression model and VQNB model obtain similar accuracies, and both give estimates of the probability for $p(y^i \cond x_1^i, x_2^i, \dots, x_d^i)$. Give an example of something we could do with the VQNB model that we could not do with the logistic regression model.
+}
+
+
+
+\pagebreak
 
 \section{Neural Networks}
 

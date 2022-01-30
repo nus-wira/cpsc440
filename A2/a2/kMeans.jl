@@ -2,8 +2,6 @@ using Printf
 using Statistics
 using Random
 include("misc.jl")
-include("clustering2Dplot.jl")
-# include("kMeansError.jl")
 
 mutable struct PartitionModel
 	predict # Function for clustering new points
@@ -15,7 +13,6 @@ function kMeans(X,k;doPlot=false)
 # K-means clustering
 
 (n,d) = size(X)
-# err = 10000
 
 # Choos random points to initialize means
 W = zeros(k,d)
@@ -62,8 +59,6 @@ while changes != 0
 	end
 
 	@printf("Running k-means, changes = %d\n",changes)
-	# err = kMeansError(X, y, W)
-	# @printf("Running k-means, kMeansError = %d\n",err)
 end
 
 function predict(Xhat)
@@ -79,5 +74,5 @@ function predict(Xhat)
 	return yhat
 end
 
-return PartitionModel(predict,y,W), err
+return PartitionModel(predict,y,W)
 end
