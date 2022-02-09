@@ -247,9 +247,9 @@ Using MLE to estimate the parameters of this model leads to test error of 0.24, 
 Laplace smoothing helps against overfitting for CANB, since the "imaginary" data might be able to account for orderings that were not captured for CANB, whereas for naive Bayes, the ordering of the features does not matter, so it would not affect the test error.
 }
 \item With Laplace smoothing, the CANB from the previous question obtains a much-higher test-set likelihood than naive Bayes. In other words, $p(\tilde{X}, \tilde{y})$ for new data is much higher for the CANB model than naive Bayes. \blu{Explain why the CANB model might give worse test error even though it gives a much-better test set likelihood.}
-}
 \ans{
 The CANB model may still assign even higher likelihoods to the incorrect classification of test examples, and therefore give a worse test error.
+}
 }
 \pagebreak
 
@@ -302,6 +302,9 @@ For $t$ training examples, summing over $k$ clusters, each with a product of $d$
 }
 }
 \item The logistic regression model and VQNB model obtain similar accuracies, and both give estimates of the probability for $p(y^i \cond x_1^i, x_2^i, \dots, x_d^i)$. Give an example of something we could do with the VQNB model that we could not do with the logistic regression model.
+\ans{
+VQNB gives us information about clusters in the data which logistic regression might not, so we can even do inference based on each cluster within a class.
+}
 }
 
 
@@ -310,13 +313,134 @@ For $t$ training examples, summing over $k$ clusters, each with a product of $d$
 
 \section{Neural Networks}
 
-Coming soon.
 
+\subsection{Neural Networks by Hand}
+
+Suppose that we train a neural network with sigmoid activations and one hidden layer and obtain the following parameters (assume that we don't use any bias variables):
+\[
+W = \mat{-2 & 2 & -1\\1 & -2 & 0}, v = \mat{3 \\1}.
+\]
+Assuming that we are doing regression, \blu{for a training example with features $(x^i)^T = \mat{-3 &-2 & 2}$ what are the values in this network of the hidden units $z^i$, activations $a^i = h(z^i)$, and prediction $\hat{y}^i$?}
+\ans{
+\[z^i=Wx^i=\mat{-2(-3)+2(-2)-1(2) \\ 1(-3)-2(-2)}
+=\mat{0 \\ 1}\]
+\[a^i=h(z^i)=\mat{0.5 \\ \frac{1}{1+\exp(-1)}}\]
+\[\hat{y}^i=v^T a^i = 2.231059\]
+}
+
+\pagebreak
+
+\subsection{Neural Network Tuning - Regression}
+
+The file \texttt{example\_nnet.jl} runs a stochastic gradient method to train a neural network on the \emph{basisData} dataset from a previous assignment. However, in its current form it doesn't fit the data very well. Modify the training procedure and model to improve the performance of the neural network. \blu{Hand in your plot after changing the code to have better performance, and list the changes you made}.
+
+Hint: there are many possible strategies you could take to improve performance. Below are some suggestions, but note that the some will be more effective than others:
+\items{
+\item Changing the network structure (\emph{nHidden} is a vector giving the number of hidden units in each layer).
+\item Changing the training procedure (you can change the stochastic gradient step-size, use decreasing step sizes, use mini-batches, run it for more iterations, add momentum, switch to \emph{findMin}, use Adam, and so on).
+\item Transform the data by standardizing the feautres, standardizing the targets, and so on.
+\item Add regularization (L2-regularization, L1-regularization, dropout, and so on).
+\item Change the initialization.
+\item Add bias variables.
+\item Change the loss function or the non-linearities (right now it uses squared error and $\tanh$ to introduce non-linearity).
+\item Use mini-batches of data, possibly with batch normalization.
+}
+\ans{
+\items{
+\item Bias variables were added to all layers.
+\item Training iteration number increased to 20000.
+\item Number of hidden units increased to 11.
+\item Non-linearity changed from tanh to ReLU.
+\item Increase step size to $0.01$.
+}
+\centerfig{0.5}{a2/nn_regression_plot2.png}
+}
+
+\pagebreak
+
+
+\subsection{Neural Network Tuning - Classification}
+
+The file \texttt{example\_mnist35\_nnet.jl} runs a stochastic gradient method to train a neural network on the `3' and `5' images from the naive Bayes question (it uses the squared error for training and classifies by taking the sign of the prediction). Modify the training procedure and model so that the neural network has a better error on the test set than the 0.03 achieved by logistic regression. \blu{List the changes you made and the best test performance that you were able to obtain}.
+\ans{
+Achieved \texttt{error rate = 0.02}. First 2 changes below similar to 3.2.
+\items{
+\item Bias variables were added to all layers.
+\item ReLU non-linearity used.
+\item Training iteration number increased to 200000.
+\item 2 hidden layers used, each with 28 units.
+\item Sigmoid function was applied to last unit to get $\hat{y}$.
+\item Initial step-size increased to 0.01.
+\item L2 Regularization added.
+}
+}
+\pagebreak
 
 \section{Very-Short Answer Questions}
 
-Coming soon.
 
+\enum{ 
+\item List 5 different inference tasks you might do with a (single variable) Bernoulli model?
+\ans{
+Given $\theta$,
+\enum{
+    \item Computing probabilities: $\Pr(x=0|\theta)$.
+    \item Computing Dataset probabilities: $\Pr(x^1,...,x^n|\theta)$.
+    \item Decoding: Find $x$ that maximizes $\Pr(x|\theta)$.
+    \item Decoding Dataset: Find $x$ that maximises $\Pr(x^1,...,x^n|\theta)$.
+    \item Sampling: Generate samples of $x$ according to $\Pr(x|\theta)$ distribution.
+}
+}
+\item What is a reason we might want to sample from a distribution?
+\ans{It allows us to make inferences on the population we are interested in.}
+\item Suppose we have $p(x) \propto \alpha g(x)$ for some continuous variable $x$, some positive constant $\alpha$, and some non-negative function $g$. Give the form of the distribution if we do not use the $\propto$ sign to hide the proportionality constant.
+\ans{
+\[\Pr(x)=\frac{g(x)}{\int_x g(x)}\]
+}
+\item In the CANB model (discussed in a previous question), you would need to estimate $p(x_j^i = 1 \cond x_{j-1}^i, y^i)$ for all values of $x_{j-1}^i$ and $y^i$.  We could consider a generalization of this where we estimate $p(x_j^i = 1 \cond x_{j-1}^i, x_{j-2}^i,\dots, x_{j-k}^i, y^i)$ for some value $k$ (to further relax the conditional independence assumption made by naive Bayes.) Assuming all values are binary we use tabular probabilities, how many parameters would this model need?
+\ans{
+\[2^{k+1} j\]
+$2^k$ values for each $x_j$, multipled by 2 classes of $y^i$.
+}
+\item What is the advantage of using a discriminative model for supervised learning, rather than the generative approach of treating supervised learning as special case of density estimation.
+\ans{
+Discriminative models avoid having to model the features, and instead focus on figuring out how the features affect the labels, as opposed to generative classifiers requiring the model of the features and labels.
+}
+\pagebreak
+\item Give a choice of the number of hidden units, the activation function, and likelihood in a neural network with a single hidden layer such that MLE in the model makes the same predictions as the MLE logistic regression model.
+\ans{
+1 hidden unit, sigmoid activation function, Bernoulli likelihood.
+}
+\item Describe an experimental setup where you might see a double descent curve when fitting a logistic regression model with L2-regularization. You can assume you have a way to generate new relevant features. Caution: the global minimum is unique in this model so the double descent would not come from choosing among multiple global minima.
+\ans{
+The initial ascent would correspond to the model overfitting - the subsequent descent could be if we generate new relevant features which may help "regularize" th original features, then train further.
+}
+\item Consder a neural network with $L$ hidden layers, where each layer has at most $k$ hidden units and we have $c$ labels in the final layer (and the number of features is $d$). What is the cost of prediction with this network?
+\ans{
+\[O(dk + Lk^2 + kc)\]
+}
+\item What is one advantage of using automatic differentiation and one disadvantage?
+\ans{
+An advantage is the gradient can be obtained at the same cost as the function, but the disadvantage is that the intermediate calculations need to stored, requiring a lot of storage.
+}
+\pagebreak 
+\item Convolutional networks seem like a pain... why not just use regular (``fully connected'') neural networks for image classification?
+\ans{
+Regular networks would require massive amounts of parameters to be able to perform on images, leading to unfeasible storage costs and overfitting. Convolutions networks take advantage of the sparsity of connections and parameter sharing to avoid those issues.
+}
+\item Why do autoencoders have a bottleneck layer?
+\ans{
+The autoencoder can learn a compressed representation of the data from this layer.
+}
+\item We discussed multi-label classification using neural networks and a product of Bernoullis model. The product of Bernoullis model assumes the class labels are independent, so why might this model make predictions that seem to capture dependencies between the random variables?
+\ans{
+Using the intersection example from lecture, but with multi-label classification, if intersection 1 and 2 were not independent and are always busy together, we would have $\Pr(x_1)=\Pr(x_2)$ using the product of Bernoullis and could more likely than not predict them to be busy together.
+}
+\item Why can fully-convolutional networks segment images of different sizes?
+\ans{
+They use the same convolution parameters across all the segments of images for all layers.
+}
+}
 
 
  
