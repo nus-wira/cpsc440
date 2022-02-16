@@ -1,0 +1,222 @@
+\documentclass{article}
+
+\usepackage{fullpage}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{parskip}
+\usepackage{amssymb}
+\usepackage{nicefrac}
+\usepackage{listings} % For displaying code
+\usepackage{algorithm2e} % pseudo-code
+
+% Answers
+\def\ans#1{\par\gre{Answer: #1}}
+%\def\ans#1{} % Comment this line to produce document with answers
+
+% Colors
+\definecolor{blu}{rgb}{0,0,1}
+\def\blu#1{{\color{blu}#1}}
+\definecolor{gre}{rgb}{0,.5,0}
+\def\gre#1{{\color{gre}#1}}
+\definecolor{red}{rgb}{1,0,0}
+\def\red#1{{\color{red}#1}}
+\def\norm#1{\|#1\|}
+
+% Math
+\def\R{\mathbb{R}}
+\def\argmax{\mathop{\rm arg\,max}}
+\def\argmin{\mathop{\rm arg\,min}}
+\newcommand{\mat}[1]{\begin{bmatrix}#1\end{bmatrix}}
+\newcommand{\alignStar}[1]{\begin{align*}#1\end{align*}}
+\def\half{\frac 1 2}
+\def\cond{\; | \;}
+
+% LaTeX
+\newcommand{\fig}[2]{\includegraphics[width=#1\textwidth]{a2f/#2}}
+\newcommand{\centerfig}[2]{\begin{center}\includegraphics[width=#1\textwidth]{a2f/#2}\end{center}}
+\def\items#1{\begin{itemize}#1\end{itemize}}
+\def\enum#1{\begin{enumerate}#1\end{enumerate}}
+
+
+\begin{document}
+
+\title{CPSC 440/540 Machine Learning (January-April, 2022)\\Assignment 3 (due Friday March 11th at midnight)}
+\author{}
+\date{}
+\maketitle
+\vspace{-4em}
+
+For this assignment you can work in groups of 1-2. However, please only hand in one assignment for the group.
+
+
+\blu{\enum{
+\item Name(s):
+\item Student ID(s):
+}}
+
+
+\section{Bayesian Learning}
+
+
+\subsection{Conjugate Priors}
+
+Consider counts $y \in \{0,1,2,3,\dots\}$ following a Poisson distribution with rate parameter $\lambda > 0$,
+\[
+p(y \cond \lambda) = \frac{\lambda^y\exp(-\lambda)}{y!}.
+\]
+We'll assume that $\lambda$ follows a Gamma distribution (the conjugate prior to the Poisson) with shape parameter $\alpha > 0$ and rate parameter $\beta > 0$,
+\[
+\lambda \sim \text{Gamma}(\alpha, \beta),
+\]
+or equivalently that
+\[
+p(\lambda \cond \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)}\lambda^{\alpha-1}\exp(-\beta\lambda),
+\]
+where $\Gamma$ is the gamma function.
+
+Compute the following quantites:
+\enum{
+\item \blu{The posterior distribution,
+\[
+p(\lambda \cond y,\alpha, \beta).
+\]
+}
+\item \blu{The marginal likelihood of $y$ given the hyper-parameters $\alpha$ and $\beta$,
+\[
+p(y\cond \alpha, \beta) = \int p(y,\lambda\cond \alpha, \beta)d\lambda.
+\]
+\pagebreak
+\item \blu{The posterior mean estimate for $\lambda$,
+\[
+\mathbb{E}_{\lambda\cond y,\alpha,\beta}[\lambda] = \int \lambda p(\lambda \cond y,\alpha,\beta)d\lambda.
+\]}
+}
+\item \blu{The posterior predictive distribution for a new independent observation $\tilde{y}$ given $y$,
+\[
+p(\tilde{y}\cond y,\alpha,\beta) =  \int p(\tilde{y},\lambda\cond y,\alpha,\beta)d\lambda.
+\]
+}
+}
+ Hint: 
+You should be able to use the form of the gamma distribution to solve all the integrals that show up in this question. You can use $Z(\alpha, \beta) = \frac{\Gamma(\alpha)}{\beta^\alpha}$ to represent the normalizing constant of the gamma distribution, and use $\alpha^+$ and $\beta^+$ as the updated parameters of the gamma distribution in the posterior.
+\ans{
+\enum{
+\item 
+\begin{equation}
+\begin{aligned}
+    \Pr(y, \lambda \cond \alpha,\beta) 
+    &= \Pr(y \cond \lambda)\Pr(\lambda \cond \alpha,\beta)\\
+    &= \frac{\beta^\alpha}{\Gamma(\alpha)}\lambda^{y+\alpha-1}\exp(-(\beta+1)\lambda)
+\end{aligned}
+\end{equation}
+\begin{equation}
+\begin{aligned}
+    \Pr(\lambda \cond y, \alpha, \beta)
+    &= \frac{\Pr(y, \lambda \cond \alpha, \beta)}{\int_{\lambda} \Pr(y, \lambda \cond \alpha, \beta)d\lambda}\\
+    &= \frac{\lambda^{y+\alpha-1}\exp(-(\beta+1)\lambda)}
+    {\int_{\lambda} \lambda^{y+\alpha-1}\exp(-(\beta+1)\lambda)d\lambda}\\
+    &= \frac{
+        \frac{\lambda^{y+\alpha-1}\exp(-(\beta+1)\lambda)}
+        {Z(y+\alpha,\beta+1)}
+    }{
+        \int_{\lambda}
+        \frac{ \lambda^{y+\alpha-1}\exp(-(\beta+1)\lambda)}
+        {Z(y+\alpha,\beta+1)}
+        d\lambda
+    }\\
+    &= \frac{\lambda^{\alpha^+ -1}\exp(-\beta^+\lambda)}{Z(\alpha^+,\beta^+)}
+\end{aligned}
+\end{equation}
+where $\alpha^+=y+\alpha, \beta^+=\beta+1$.
+\item
+\begin{equation}
+\begin{aligned}
+    \Pr(y \cond \alpha, \beta)
+    &= \int_{\lambda} \Pr(y, \lambda \cond \alpha, \beta) d\lambda\\
+    &= Z(\alpha^+,\beta^+) \quad\text{(from (2))}
+\end{aligned}
+\end{equation}
+\item
+\begin{equation}
+\begin{aligned}
+    Z(\alpha^+, \beta^+) 
+    &= \frac{\Gamma(\alpha^+)}{(\beta^+)^{\alpha^+}}\\
+    &= \frac{\beta^+}{\alpha^+}
+    \frac{\alpha^+ \Gamma(\alpha^+)}{(\beta^+)^{\alpha^+ + 1}}\\
+    &= \frac{\beta^+}{\alpha^+}Z(\alpha^+ + 1, \beta^+) 
+\end{aligned}
+\end{equation}
+\begin{equation}
+\begin{aligned}
+    \mathbb{E}_{\lambda\cond y,\alpha,\beta}[\lambda] 
+    &= \int \lambda p(\lambda \cond y,\alpha,\beta)d\lambda\\
+    &= \int \lambda 
+    \frac{\lambda^{\alpha^+ -1}\exp(-\beta^+\lambda)}
+    {Z(\alpha^+,\beta^+)}
+    d\lambda\\
+    &= \frac{\beta^+}{\alpha^+}\int_{\lambda}
+    \frac{\lambda^{\alpha^+ -1}\exp(-\beta^+\lambda)}
+    {Z(\alpha^+ + 1,\beta^+)}
+    d\lambda\\
+    &= \frac{\beta^+}{\alpha^+}
+\end{aligned}
+\end{equation}
+\item
+\begin{equation}
+\begin{aligned}
+    \Pr(\tilde{y}\cond y,\alpha,\beta) 
+    &= \int \Pr(\tilde{y},\lambda\cond y,\alpha,\beta)d\lambda\\
+    &= \int \Pr(\tilde{y}\cond\lambda)\Pr(\lambda\cond y,\alpha,\beta)d\lambda\\
+    &= \int \frac{\lambda^{\tilde{y}}\exp(-\lambda)
+    \lambda^{\alpha^+ -1}\exp(-\beta^+ \lambda)}
+    {\tilde{y}! \, Z(\alpha^+,\beta^+)}d\lambda\\
+    &= \frac{1}{\tilde{y}! \, Z(\alpha^+,\beta^+)}
+    \int \lambda^{\tilde{y}+\alpha^+ - 1}\exp(-(\beta^+ + 1)\lambda)d\lambda\\
+    &= \frac{Z(\alpha^+ + \tilde{y}, \beta^+ + 1)}
+    {\tilde{y}! \, Z(\alpha^+,\beta^+)}\\
+    &= \frac{\Gamma(\alpha^+ + \tilde{y}) (\beta^+)^{\alpha^+}}
+    {\tilde{y}! \, \Gamma(\alpha^+)(\beta^+ + 1)^{\alpha^+ + \tilde{y}}}\\
+    &= \frac{(\alpha^+ + \tilde{y} - 1)! \, (\beta^+)^{\alpha^+}}
+    {\tilde{y}! \, (\alpha^+ - 1)! \, (\beta^+ + 1)^{\alpha^+ + \tilde{y}}}\\
+    &= {\alpha^+ + \tilde{y} - 1 \choose \tilde{y}}
+    \frac{(\beta^+)^{\alpha^+}}{(\beta^+ + 1)^{\alpha^+ + \tilde{y}}}
+\end{aligned}
+\end{equation}
+}
+}
+
+\pagebreak
+
+\subsection{Empirical Bayes}
+
+Coming very soon.
+
+\pagebreak
+
+\section{More Deep Learning}
+
+Coming soon.
+
+\pagebreak
+
+
+\section{Very-Short Answer Questions}
+
+Coming soon.
+
+
+
+\pagebreak
+
+\section{Project Proposal(s)}
+
+Coming very soon.
+
+
+
+
+ 
+\end{document}
