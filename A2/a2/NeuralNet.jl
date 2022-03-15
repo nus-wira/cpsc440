@@ -70,7 +70,7 @@ function NeuralNet_backprop(bigW,x,y,nHidden)
 	end
 	# yhat = v'*h(z[end])
 	yhat = v'*[h(z[end]); 1]
-	# yhat = 1/(1+exp(-yhat))
+	yhat = 1/(1+exp(-yhat))
 
 	r = yhat-y
 	# Regularize
@@ -169,6 +169,7 @@ function NeuralNet_predict(bigW,Xhat,nHidden)
 		end
 		# yhat[i] = v'*h(z[end])
 		yhat[i] = v'*h([z[end];1])
+		yhat[i] = 1/(1+exp(-yhat[i]))
 	end
 	return yhat
 end

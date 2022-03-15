@@ -12,6 +12,22 @@
 \usepackage{listings} % For displaying code
 \usepackage{algorithm2e} % pseudo-code
 
+%%
+%% Julia definition (c) 2014 Jubobs
+%%
+\lstdefinelanguage{Julia}%
+  {morekeywords={abstract,break,case,catch,const,continue,do,else,elseif,%
+      end,export,false,for,function,immutable,import,importall,if,in,%
+      macro,module,otherwise,quote,return,switch,true,try,type,typealias,%
+      using,while},%
+   sensitive=true,%
+   alsoother={\$},%
+   morecomment=[l]\#,%
+   morecomment=[n]{\#=}{=\#},%
+   morestring=[s]{"}{"},%
+   morestring=[m]{'}{'},%
+}[keywords,comments,strings]%
+
 % Answers
 \def\ans#1{\par\gre{Answer: #1}}
 %\def\ans#1{} % Comment this line to produce document with answers
@@ -53,8 +69,8 @@ For this assignment you can work in groups of 1-2. However, please only hand in 
 
 
 \blu{\enum{
-\item Name(s):
-\item Student ID(s):
+\item Name(s): Wira Azmoon Ahmad
+\item Student ID(s): 55246318
 }}
 
 
@@ -192,29 +208,303 @@ where $\alpha^+=y+\alpha, \beta^+=\beta+1$.
 
 \subsection{Empirical Bayes}
 
-Coming very soon.
 
+If you run the script \emph{example\_groups.jl} it will load a dataset representing the number of people diagnosed with stomach cancer in a set of different regions, and the number of people at risk in the region. The format of the data is as follows:
+\items{
+\item \texttt{n[j,1]} is number of positive examples in the training set for group $j$.
+\item \texttt{n[j,2]} is the total number of examples in the training set for group $j$.
+\item \texttt{nTest[j,1]} is number of positive examples in the testing set for group $j$.
+\item \texttt{nTest[j,1]} is the total number of examples in the testing set for group $j$.
+}
+The code first shows the negative log-likelihood (NLL) on the test set if we assume that the probability of getting stomach cancer among each group is 0.5. The NLL under this choice is very high, since the number of positives is fairly low (remember that we want to have a low NLL, corresponding to a high likelihood). The code then computes the MLE for each group, and evaluates the NLL with this choice.
+
+\enum{
+\item \blu{Why do we get \texttt{NaN} for the NLL with the MLE values? What is the actual test likelihood supposed to be in this case?}
+\ans{
+In cases where $\theta_j=0,1$ due to only negative or positive examples, $\log 0$ will be undefined leading to \texttt{NaN}. The actual test likelihood should be 0. 
+}
+\item Laplace smoothing corresponds to  MAP estimation with a beta prior that has $\alpha=2$ and $\beta=2$. \blu{What is the test NLL if we use Laplace smoothing to estimate the parameters?} 
+\ans{
+\texttt{NLLs(lap, nTest) = 274.6798491627476}
+}
+\item Intead of using MAP estimation and then computing the NLL, we could use the Bayesian approach of computing the negative logarithm of the posterior predictive probability of the test data. \blu{What is the negative log of the posterior predictive probability of the test data under a beta prior with $\alpha=2$ and $\beta=2$? Explain why you think this gives better/worse results than the NLL under MAP estimation.}
+\ans{
+\texttt{NLLs(post, nTest) = 290.22604365606713}\\
+This is worse, likely because the prior pulls the result away from the actual data.
+}
+\item Instead of modeling each group independently, consider fitting a single Bernoulli model by pooling the data across all groups. In other words, we ignore the groups and treat all the examples as if they came from a single source. \blu{Report the test NLL in this pooled setting when using MLE, MAP, and the posterior predictive. Why are these results more similar than when we use independent Bernoullis for each group?}
+\ans{
+\texttt{NLLs(MLEs, nTest) = 263.9082694845802\\
+NLLs(lap, nTest) = 264.0505052455646\\
+NLLs(post, nTest) = 264.21436054638554}\\
+The data $n_1,n$ end up dominating the prior $\alpha,\beta$ when the data is pooled, resulting in the priors affecting the NLL less.
+}
+\pagebreak
+\item In the pooled data model, you can compute the logarithm of the marginal likelihood of the hyper-parameters given the data as \texttt{logMargLik(a,b) = logbeta(a+n1,b+n0)-logbeta(a,b)} (which is the ratio of posterior and prior normalizing constants, converted to the log domain).\footnote{This uses the ``SpecialFunctions'' package to implement \texttt{logbeta}, the logarithm of the beta function (the beta function is the normalizing constant of the beta distribution).} Here, \texttt{n1} is the number of 1s, \texttt{n0} is the number of 0s, \texttt{a} gives the value of $\alpha$, and \texttt{b} gives the value of $\beta$. \blu{Can you find the value of $\alpha$ and $\beta$ that optimize the marginal likelihood?} Hint: it may be helpful to parameterize the beta distribution in terms of $m=\alpha/(\alpha+\beta)$ (the proportion of 1s) and $k = (\alpha+\beta)$ (the ``strength'' of our belief in this ratio). Try setting $m$ to the MLE value of $\theta$ and varying $k$.
+\ans{
+The NLL continues to keep growing when increasing $k$, implying that a very strong belief in the ratio chosen further optimizes the marginal likelihood.
+}
+\item In the textbook where I got this data,\footnote{``Ordinal Data Modeling'' by Johnson and Albert.} they suggest using an independent hyper-prior over $m$ and $k$ of the form
+\[
+p(m) \propto m^{.01-1}(1-m)^{9.9-1}, \quad p(k) \propto 1/(1+k)^2.
+\]
+The hyper-prior over $m$ is biased towards low values (since we expect the cancer to be rare) but not particularly strong, while the prior over $k$ is similar to what is called a ``Jeffreys prior'' over scale variables (which would satisfies a particularly definition of being an ``uninformative prior''). In the pooled data model, find the value of $\alpha$ and $\beta$ that optimize the marginal likelihood with this hyper-prior (or equivalently optimize the log of the marginal likelihood with the log of this prior as the regularizer). \blu{Up to one decimal place, what are the optimal values of $\alpha$ anbd $\beta$ under this hyper-prior? What values of $m$ and $k$ does this correspond to choosing? Hand in your code for computing the objective function that is being optimized.}
+Hint: for this question you can use a ``brute force'' approach to find $\alpha$ and $\beta$, by searching over all values of the from ``x.y'' for x in 0-9 and y in 0-9 (but where at least one of ``x'' and ``y'' must be bigger than 0.
+\ans{
+\texttt{objFn(a,b) = -logMargLik(a,b) + 0.99*log(a/(a+b)) - 8.9*log(1-a/(a+b)) + 2*log(1+a+b)}
+\[\alpha=0.1\]
+\[\beta=2.6\]
+\[m=\frac{\alpha}{\alpha+\beta}=\frac{1}{27}\]
+\[k=2.7\]
+}
+\pagebreak
+\item We can also use the (regularized) marginal log-likelihood to learn the hyper-parameters in our original setting where we had a separate parameter for each group. In this setting the marginal likelihood is given by
+\[
+p(X \cond \alpha, \beta) \propto \prod_{j=1}^k \frac{Z(\alpha+n_{1j},\beta + n_{0j})}{Z(\alpha,\beta)},
+\]
+where $n_{1j}$ is the number of 1s in group $j$, $n_{0j}$ is the number of 0s in group $j$, and the normalizing constant $Z$ is the beta function. Find the values of $\alpha$ and $\beta$ that optimize the marginal likelihood multiplied by the hyper-prior from the previous question, up to 1 decimal place (the value ``x'' in the brute-force search will need to be increased). \blu{Hand in your code to compute the objective function being optimized, report the values of $\alpha$ and $\beta$ that you find, and report the posterior predictive probability of the test data under this choice of $\alpha$ and $\beta$.}
+\ans{
+\lstinputlisting[firstline=76,lastline=83]{a3/example_groups.jl}
+\[\alpha=1,\beta=731\]
+\texttt{objFnSep(a, b, nTest) = 273.05536335592865}
+}
+\item In the model from the last question, \blu{what is the posterior predictive probability of seeing a 1 for a new group?}
+\ans{
+\[\frac{\alpha}{\alpha+\beta}=\frac{1}{732}\]
+}
+\item Under the choice of $\alpha$ and $\beta$ from the previous question, \blu{what is the NLL of the test data if we use MAP estimation for the parameters?}
+\ans{
+\texttt{NLLs(MAPs, nTest) = 267.01199290160525}
+}
+\item In this question, many of the best-performing methods achieve similar performance. \blu{Give an explanation for why these different model choices do not make a big difference for this dataset.}
+\ans{
+Given the data being only binary, and cancer being very rare, its simplicity can cause many different models to be able to draw similar resutls.
+}
+}
 \pagebreak
 
 \section{More Deep Learning}
 
-Coming soon.
+The script \emph{example\_flux.jl} shows how the compute the loss function and gradient of a neural network with one hidden layer (with 3 units) using a variety of strategies, and how to update the parameters based on an SGD update using a variety of strategies. This includes the backpropagation code from the previous assignment, as well  automatic differentiation and other functionality provided by the \emph{Flux} package. The function does not produce any output, but you can verify that all methods return the same results up to numerical precision.
+
+\enum{
+\item On the previous assignment we concatenated all parameters into one big vector of parameters $w$. \blu{What is an advantage of the other approaches in the script, where we a matrix $W$ and a vector $v$?}
+\ans{
+It is easier to treat each layer independently, perhaps even training them separately.
+}
+\item \blu{If we use use \texttt{Dense(W)} for the first layer in the network, how many parameters does the first layer have and what do the extra parameters represent?} Hint: you can use \texttt{params(layer)} to get the parameters of a layer.
+\ans{
+2355 parameters instead of 2352 parameters, an extra 3 parameters. These correspond the connection from the bias unit to the 3 hidden units.
+}
+\item \blu{Give code for implementing a neural network with 2 hidden layers, using the \texttt{Dense} function within the \texttt{Chain} function.}
+\ans{\\
+\texttt{model2 = Chain(Dense(W1,false,tanh),Dense(W2,false,tanh),Dense(vt,false,identity))}\\
+where \texttt{W1,W2,vt} are appropriately defined.
+}
+\item In one of the Flux tutorials, they use the \texttt{softmax} function as the last argument to the \texttt{Chain} function (for multi-class classification). \blu{What is a reason we might not want to include the softmax function within the \texttt{Chain} function?}
+\ans{
+We might want to use a different function for the output.
+}
+\item It we use \emph{Conv((5,5),3=$>$6,relu)} for a layer, \blu{why do we get a layer with 456 parameters}?
+\ans{
+$5\times5$ convolutional kernel, with 3 input and 6 output channels, and 6 bias corresponding to the output channels.
+\[5\times 5\times 3\times 6 + 6 = 456.\]
+}
+\pagebreak
+\item Re-write the model and training procedure you developed for Assignment 2 Question 3.3 to use one of these alternate ways to compute the gradient and the update of the parameters (so you should not be calling \emph{NeuralNet.jl} anymore). \blu{Re-state the changes you made, hand in your modified code, and report whether you noticed any performance differences (in terms of runtime, memory, or accuracy).}
+\ans{
+Main changes include building the model with \texttt{Flux.Chain()} instead of manually, and using the \texttt{gradient()} function provided. It ran much slower than before however, possibly due to AD adding to the cost. The storage of immediate calculations required also would add the memory requirements. Accuracy, on the other hand, is similar to before, since the general structure is still the same, with only the specific implementation difference.
+\lstinputlisting{a3/example_mnist35_nnet.jl}
+}
+}
 
 \pagebreak
 
 
 \section{Very-Short Answer Questions}
 
-Coming soon.
 
+\enum{
+\item When we use categorical variables, we assume that the categories do not have any special ordering. But we when sample from a categorical distribution, we use the CDF $p(x \leq c)$. Why does it make sense to use the CDF for sampling if the categories are unordered?
+\ans{
+The CDF is a sum of probabilities and thus is not affected by the order of the categories.
+}
+\item Monte Carlo methods approximate the expectation of a function of a random variable, but we said that they can be used to approximate probabilities. What random function would you use to approximate the probability of an event?
+\ans{
+The probability can be approximated by dividing the number of positive examples for the event over the total examples sampled.
+}
+\item For the categorical likelihood, what is the relationship between the usual parameters $\theta_c$ and the parameters $\tilde{\theta}_c$ we used to derive the MLE.
+\ans{
+\[\theta_c=\frac{\tilde{\theta}_c}{\sum_{c=1}^k \tilde{\theta}_c}\]
+}
+\item How do MAP and Bayesian methods differ in how make predictions?
+\ans{
+MAP makes predictions only on parameters with the highest posterior, while Bayesian methods weights all possible parameters by their posterior.
+}
+\item Why do we say that Bayesian methods incorporate regularization, even though there is no regularization term in the posterior predictive distribution.
+\ans{
+Since the final posterior predictive weights predictions by the posterior, which contains the regularizer, there is regularization involved overall.
+}
+\pagebreak
+\item What is the difference the standard MLE and type II MLE?
+\ans{
+Standard MLE is optimizing likelihood of data given parameters, while type II MLE is optimizing likelihood of data given \textbf{hyper-parameters}.
+}
+\item How does using a conjugate prior simplify the marginal likelihood calculation?
+\ans{
+This will lead to the posterior coming from the same "family" as the prior, with updated parameters, and there is an explicit formula for the posterior distribution.
+}
+\item What is a hyper-hyper-parameter?
+\ans{
+It is the prior on the hyper-parameters.
+}
+\item Suppose we use the tabular parameterization for multi-class classification with $d$ features, where we have $k$ classes and each feature can take $k$ values. What is the exact number of parameters we need if we remove redundant parameters by exploiting that probabilities sum to 1.
+\ans{
+\[d\times(k-1)\times k\]
+}
+\item In the softmax function we have $k$ weight vectors, one for each class. But in the special case of the sigmoid function we fix one of these weight vectors to zero, so we only have one weight vector for two classes. Explain why we would or would not get a more-general model if we used the softmax function with two weight vectors for binary classification (by ``more-general'', we mean ``can model a larger set of functions'').
+\ans{
+We would get a more-general model since the model can also learn what would be learnt using the sigmoid function with one weight vector being zero, as well as other models that use non-zero values for both weight vectors.
+}
+\pagebreak
+\item If we use a neural network with one hidden layer for multi-class classification, what are the sizes of the parameter matrices $W$ and $V$ and what is the cost of backpropagation? You can use $k$ as the number of classes and $m$ as the number of hidden units.
+\ans{
+\[W: d \times m\]
+\[V: m \times k\]
+\[O(dm + mk)\]
+}
+\item Why can RNNs label sequence of different lengths?
+\ans{
+RNNs can tie parameters accross time to label sequences of different lengths.
+}
+\item When predicting with sequence-to-sequence RNNs we do not know the length of the output sequence. How is the length of the output sequence determined during decoding?
+\ans{
+Decoding will output one output at a time until "EOS" is outputted.
+}
+\item In LSTMs, what is the range (set of possible values) for $a_t$, $o_t$, $c_t$, $f_t$, $i_t$, and $g_t$ under the usual choices of activation functions ($h$: sigmoid, $h_0$: tanh)?
+\ans{
+\[0\leq f_t,i_t,o_t\leq 1\]
+\[-1\leq a_t \leq 1\]
+\[c_t\in \mathbb{R}\]
+}
+\item Why do we use "context vectors" instead of including all encoding states in attention models?
+\ans{
+This allows the model to work on input of various sizes since the encoder information can be summarized.
+}
+}
 
 
 \pagebreak
 
-\section{Project Proposal(s)}
+\section*{Project Proposal(s)}
 
-Coming very soon.
+As discussed in the syllabus, we are using the following marking scheme for the course:
+\enum{
+\item CPSC 440: 50\% assignments and 50\% for the best among \{final exam, research project, sample lecture/assignment\}.
+\item CPSC 540: 50\% assignments, 25\% for the best among \{final exam, research project, sample lecture/assignment\}, and 25\% for the second best among those three categories.
+}
 
+If you are doing the research project and/or the sample lecture/assignment, \blu{the final part of this assignment is to submit a short proposal about what you will focus on}. Both the project and sample lecture/assignment must be done in groups of 2-3, but you should only submit one proposal for the group. The next two subsections describe what the proposal should look like for the two types of projects. This part of the assignment will not be marked: we are doing this so that you (a) start forming project groups now, (b) you start thinking about what you want to do for the project(s), and (c) we check that the scope and topic of the project is suitable.
+
+If you plan to do the final exam but not the research project or sample lecutre/assignment, then you do not need to submit anything for this part of the assignment. If you are doing the resaerch project and sample lecture/assignment, note that the groups do not have to be the same for both. Also note that you can do these projects on similar topics. For example, the research project might be focus on applying a particular ML method to a particular application while the lecture goes over how the ML method works. Similarly, if you have projects in other courses this term, it is ok to do them on the same topic provided that you check with the other instructor (although the submission formats and grading schemes may differ between courses).
+
+There is flexibility in the choice of project topics even after the proposal. If you want to explore different topics you can ultimately choose to do a project that is unrelated to the one in your proposal. However, in this case you may want to check with the instructor/TAs that the scope and topic are appropriate..
+
+\subsection*{Research Project}
+
+The proposal should be a \blu{maximum of 2 pages} (and 1 page or half of a page is ok if you can describe your plan concisely). The proposal should be written for the instructor and the TAs, so you do not need to introduce any ML background but you will need to introduce non-ML topics. The projects \blu{must be done in groups of 2-3}, and the \blu{proposal be submitted separately from the assignment} on Gradescope.
+
+There is quite a bit of flexibility in terms of the type of project you can do, as I believe there are many ways that people can make valuable contributions to research. However, note that the final deliverable will be a report containing at most 6 pages of text (the actual document can be longer due to figures, tables, references, and proofs) that emphasizes a particular ``contribution" (which is ``what doing the project has added to the world'').
+
+\blu{The three mains questions your project proposal needs to answer are:
+\begin{enumerate}
+\item What problem you are focusing on?
+\item What do you plan to do?
+\item What will be the ``contribution"?
+\end{enumerate}
+}
+Also, note that for the course project that negative results (like ``we tried something that we thought we would work in a particular setting but it didn't work'') are acceptable (and often unavoidable).
+
+Here are some standard project ``templates" that you might want to follow:
+
+\items{
+\item \textbf{Application bake-off}: you pick a specific application (from your research, personal interests, or maybe from Kaggle) or a small number of related applications, and try out a bunch of techniques (e.g., random forests vs. logistic regression vs. generative models). In this case, the contribution would be showing that some methods work better than others for this specific application (or your contribution could be that everything works equally well/badly).
+\item \textbf{New application}: you pick an application where where people aren't using ML, and you test out whether ML methods are effective for the task. In this case, the contribution would be knowing whether ML is suitable for the task (and perhaps how to prepared the data and constructed features).
+\item \textbf{Scaling up}: you pick a specific machine learning technique, and you try to figure out how to make it run faster or on larger datasets (for example, how do we apply kernel methods when $n$ is very large). In this case, the contribution would be the new technique and an evaluation of its performance, or could be a comparison of different ways to address the problem.
+\item \textbf{Improving performance}: you pick a specific machine learning technique, and try to extend it in some way to improve its performance (for example, how can we efficiently use use non-linearities within graphical models). In this case, the contribution would be the new technique and an evaluation of its performance.
+\item \textbf{Generalization to new setting}: you pick a specific machine learning technique, and try to extend it to a new setting (for example, making a graphical-model version of random forests).  In this case, the contribution would be the new technique and an evaluation of its performance, or could be a comparison of different ways to address the problem.
+\item \textbf{Perspective paper}: you pick a specific topic in ML, read a larger number of papers on the topic, then write a report summarizing what has been done on the topic and what are the most promising directions of future work. In this case, the contribution would be your summary of the relationships between the existing works, and your insights about where the field is going.
+\item \textbf{Coding project}: you pick a specific method or set of methods (like independent component analysis), and build an implementation of them. In this case, the contribution could be the implementation itself or a comparison of different ways to solve the problem.
+\item \textbf{Theory}: you pick a theoretical topic (like the variance of cross-validation or the convergence of stochastic gradient in non-smooth and non-convex setting), read what has been done about it, and try to prove a new result (usually by relaxing existing assumptions or adding new assumptions). The contribution could be a new analysis of an existing method, or why some approaches to analyzing the method will not work.
+}
+The above are just suggestions, and many projects will mix several of these templates together, but if you are having trouble getting going then it's best to stick with one of the above templates. Also note that the above includes topics not covered in the course (like random forests), so there is flexibility in the topic, but the topic should be closely-related to ML.
+
+
+\subsection*{Sample Lecture and Assignment}
+
+ Throught CPSC 340-440, we try to introduce you to a variety of fundamental concepts that we think will stand the test of time and we also try to give you an idea of what methods people are currently finding useful in a variety of settings. But unfortunately, ML is a huge field so many topics cannot be covered in only 1-2 courses. For the sample lecture/assignment, you will \blu{prepare a lecture and an assignment on a model that we do not cover in the course} (preparing material is one of the best ways to learn new things, and this also helps us decide what topics to include in future offerings of the course).
+
+The lecture should touch on most of the below topics (I planned each ``part'' of the course this term to follow this structure):
+\enum{
+\item \textbf{Motivating problem}: introduce an application that motivates the model.
+\item  \textbf{Model definition}: how is it defined and what are the parameters (and their sizes)?
+\item  \textbf{General framework and other applications}: is this solving an abstract problem, and where else would this model be useful?
+\item  \textbf{Inference}: how do you do things like sampling, decoding, marginalization, conditioning, and test-set predictions/evaluations? (Theoretically and with code.)
+\item  \textbf{MLE}: how do you compute the MLE parameters? (Theoretically and with code.)
+\item  \textbf{MAP}: how do you introduce a prior and compute the MAP parameters?
+\item  \textbf{Bayes}: how do you make Bayesian predictions with the model?
+\item  \textbf{Multivarate} (for one-dimensional distributions): is there a multi-variable version of the model?
+\item  \textbf{MNIST}: what do MNIST samples look like if you use it as a density estimator?
+\item  \textbf{Supervised}: how do we add features to the model and use within a generative or a discriminative classifier?
+\item  \textbf{Deep}: how do we add layers of hidden layers to learn features?
+}
+The particular deliverables due with this assignment are:
+\enum{
+\item \blu{Specify which model you will focus on.}
+\item \blu{Give a 1-sentence-maximum description of how you might cover the topics above in the model.} Note: not all topics make sense for all models, so it's ok to say that you won't cover some of them.
+\item \blu{Give a short outline for what the assignment related to the model will cover.}
+}
+As with the research project, \blu{the sample lecture/assignment should be done in groups of 2-3} and the \blu{deliverables above should be submitted separately from the assignment}. The appendix below may help you to choose a topic.
+
+\appendix
+
+\section{Lecture Topic Suggestions}
+
+Below are a set of topics that I plan to cover later in the course, so you should avoid choosing these topics:
+\items{
+\item Multivariate Gaussians and models like linear/Gaussian discriminant analysis.
+\item Exponential families and multivariate Laplace/student distributions.
+\item Rejection sampling and importance sampling.
+\item Markov chains and MCMC.
+\item Directed and undirected graphical models (``Bayesian networks'' and ``Markov random fields''), conditional random fields.
+\item Latent Dirichlet allocation and variational inference.
+\item Mixture models and hidden Markov models.
+\item Boltzmann machines and deep belief networks.
+}
+I may also cover VAEs/GANs if we have time, but feel to choose those topics as I am not sure if we will have time and these topics are changing very quickly at the moment.
+
+Below is a set of topics that you might see in other ML courses that I will probably not cover as well as some related keywords:
+\items{
+\item Sequential Monte Carlo.
+\item Non-parameteric Bayes.
+\item Online learning and bandits.
+\item Reinforcement learning.
+\item Privacy and security.
+\item Algorithm fairness.
+\item Independent component analysis.
+\item Scaling up Gaussian processes.
+\item Max-margin Markov networks and structured SVMs.
+\item Reinforcement learning.
+\item Causality.
+\item Parallel/distributed/federated training.
+\item Learning theory.
+\item Probabilistic context-free grammars.
+\item Probabilistic programming.
+\item Sub-modularity.
+\item Spectral methods.
+\item Automatic hyper-parameter tuning.
+ }
+ (The above topics would probably be my starting point for making a third class, and I could imagine some of the above topics being swapped into 340/440 in future offerings.) Some of these topics are too big for one lecture (such as reinforcement learning), and one of the main purposes of doing this proposal is to help you choose the appropriate scope.
 
 
 

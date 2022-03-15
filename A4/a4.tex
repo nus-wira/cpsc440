@@ -1,0 +1,288 @@
+\documentclass{article}
+
+\usepackage{fullpage}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{parskip}
+\usepackage{amssymb}
+\usepackage{nicefrac}
+\usepackage{listings} % For displaying code
+\usepackage{algorithm2e} % pseudo-code
+
+% Answers
+\def\ans#1{\par\gre{Answer: #1}}
+%\def\ans#1{} % Comment this line to produce document with answers
+
+% Colors
+\definecolor{blu}{rgb}{0,0,1}
+\def\blu#1{{\color{blu}#1}}
+\definecolor{gre}{rgb}{0,.5,0}
+\def\gre#1{{\color{gre}#1}}
+\definecolor{red}{rgb}{1,0,0}
+\def\red#1{{\color{red}#1}}
+\def\norm#1{\|#1\|}
+
+% Math
+\def\R{\mathbb{R}}
+\def\argmax{\mathop{\rm arg\,max}}
+\def\argmin{\mathop{\rm arg\,min}}
+\newcommand{\mat}[1]{\begin{bmatrix}#1\end{bmatrix}}
+\newcommand{\alignStar}[1]{\begin{align*}#1\end{align*}}
+\def\half{\frac 1 2}
+\def\cond{\; | \;}
+\DeclareMathOperator{\Tr}{Tr}
+
+% LaTeX
+\newcommand{\fig}[2]{\includegraphics[width=#1\textwidth]{a4f/#2}}
+\newcommand{\centerfig}[2]{\begin{center}\includegraphics[width=#1\textwidth]{a4f/#2}\end{center}}
+\def\items#1{\begin{itemize}#1\end{itemize}}
+\def\enum#1{\begin{enumerate}#1\end{enumerate}}
+
+
+\begin{document}
+
+\title{CPSC 440/540 Machine Learning (January-April, 2022)\\Assignment 4 (due Friday April 1st at midnight)}
+\author{}
+\date{}
+\maketitle
+\vspace{-4em}
+
+
+For this assignment you can work in groups of 1-2. However, please only hand in one assignment for the group. \red{It is possible that some questions on this assignment will be cancelled, depending on the pace of lectures.}
+
+
+\blu{\enum{
+\item Name(s):
+\item Student ID(s):
+}}
+
+
+\section{Gaussians}
+
+\subsection{Gaussian Self-Conjugacy}
+
+Consider $n$ IID samples $x^i$ distributed according to a Gaussian with mean $\mu$ and covariance $\sigma^2 I$,
+\[
+x^i \sim \mathcal{N}(\mu, \sigma^2 I).
+\]
+Assume that $\mu$ itself is distributed according to a Gaussian
+\[
+\mu \sim \mathcal{N}(\mu_0,\Sigma_0),
+\]
+with mean $\mu_0$ and (positive-definite) covariance $\Sigma_0$. In this setting, the posterior for $\mu$ also follows a Gaussian distribution.
+
+ \blu{Derive the form of the posterior distribution, $p(\mu\cond X, \sigma^2, \mu_0, \Sigma_0)$.}\\
+Hint: the posterior is a product of Gaussian densities.
+\ans{
+\begin{equation}
+\begin{aligned}
+   &\Pr(\mu\cond X,\sigma^2, \mu_0, \Sigma_0)\\
+   &\propto \Pr(X\cond \mu,\sigma^2)\Pr(\mu\cond \mu_0,\Sigma_0)\\
+   &\propto \exp\left(-\frac{1}{2}\sum_i (x^i-\mu)^T(\sigma^2 I)^{-1}(x^i-\mu)\right)
+   \exp\left(-\frac{1}{2}(\mu-\mu_0)^T \Sigma_0^{-1}(\mu-\mu_0)\right)\\
+   &=\exp\left(-\frac{1}{2}
+   \left[\sigma^{-2}\sum_i (x^i-\mu)^T (x^i-\mu)
+   + (\mu-\mu_0)^T \Sigma_0^{-1}(\mu-\mu_0)\right]
+   \right)\\
+   &= \exp\left(-\frac{1}{2}
+   \left[\sigma^{-2}\sum_i 
+   \left(x_i^T x_i - 2\mu^T x_i + \mu^T \mu\right)
+   + \mu^T \Sigma_0^{-1}\mu - 2\mu^T \Sigma_0^{-1} \mu_0
+   + \mu_0^T \Sigma_0^{-1}\mu_0
+   \right]
+   \right)\\
+   &= \exp\left(-\frac{1}{2}\left[
+   \left(n\sigma^{-2}\mu^T \mu + \mu^T \Sigma_0^{-1}\mu\right)
+   + \left(-2\sigma^{-2}\mu^T \sum_i x_i 
+   - 2\mu^T \Sigma_0^{-1}\mu_0 \right)
+   + \left(\sigma^{-2}\sum_i x_i^T x_i 
+   + \mu_0^T \Sigma_0^{-1}\mu_0\right)
+   \right]\right)\\
+   &= \exp\left(-\frac{1}{2}\left[
+   \left(\mu^T (n\sigma^{-2}I + \Sigma_0^{-1})\mu\right)
+   + \left(-2\mu^T (\sigma^{-2}\sum_i x^i + \Sigma_0^{-1}\mu_0)\right)
+   + \left(\sigma^{-2}\sum_i x_i^T x_i 
+   + \mu_0^T \Sigma_0^{-1}\mu_0\right)
+   \right]\right)\\
+   &\propto \mathcal{N}(\mu_N,\Sigma_N) 
+   \quad\text{(product of Gaussians is Gaussian)}\\
+   &\propto \exp\left(-\frac{1}{2}\left[
+   (\mu-\mu_N)^T \Sigma_N^{-1} (\mu-\mu_N)
+   \right]\right) \\
+   &= \exp\left(-\frac{1}{2}\left[
+   \mu^T \Sigma_N^{-1} \mu - 2\mu^T \Sigma_N^{-1} \mu_N 
+   + \mu_N^T \Sigma_N^{-1} \mu_N
+   \right]\right)\\
+\end{aligned}
+\end{equation}
+Comparing coefficients,
+\[\Pr(\mu\cond X,\sigma^2, \mu_0, \Sigma_0)=\mathcal{N}(\mu_N,\Sigma_N)\]
+where
+\[\Sigma_N=(n\sigma^{-2}I + \Sigma_0^{-1})^{-1}\]
+\[\mu_N=\Sigma_N\left(\sigma^{-2}\sum_i x^i + \Sigma_0^{-1}\mu_0\right)\]
+}
+
+\pagebreak
+
+\subsection{Generative Classifiers with Gaussian Assumption}
+
+Consider the 3-class classification dataset in this image:
+% \centerfig{.4}{sample}
+In this dataset, we have 2 features and each colour represents one of the classes. Note that the classes are highly-structured: the colours each roughly follow a Gausian distribution plus some noisy samples.
+
+Since we have an idea of what the features look like for each class, we might consider classifying  inputs $x$ using a \emph{generative classifier}. In particular, we are going to use Bayes rule to write
+\[
+p(y^i=c\cond x^i,\Theta) = \frac{p(x^i\cond y^i=c, \Theta) \cdot p(y^i=c\cond\Theta)}{p(x^i\cond\Theta)},
+\]
+where $\Theta$ represents the parameters of our model. To classify a new example $\tilde{x}^i$, generative classifiers would use
+\[
+\hat{y}^i = \argmax_{y \in \{1,2,\dots,k\}} p(\tilde{x}^i\cond y^i=c,\Theta)p(y^i=c\cond\Theta),
+\]
+where in our case the total number of classes $k$ is $3$.\footnote{The denominator $p(\tilde{x}^i\cond\Theta)$ is irrelevant to the classification since it is the same for all $y$.}
+% and $\theta_c$ is the set of parameters associated class $c$.
+Modeling $p(y^i=c\cond\Theta)$ is easy: we can just use a $k$-state categorical distribution,
+\[
+p(y^i = c \cond \Theta) = \theta_c,
+\]
+where $\theta_c$ is a single parameter for class $c$. The maximum likelihood estimate of $\theta_c$ is given by $n_c/n$, the number of times we have $y^i = c$ (which we've called $n_c$) divided by the total number of data points $n$.
+
+Modeling $p(x^i \cond y^i =c, \Theta)$ is the hard part: we need to know the \emph{probability of seeing the feature vector $x^i$ given that we are in class $c$}. This corresponds to solving a density estimation problem for each of the $k$ possible classes. 
+To make the density estimation problem tractable, we'll assume that the distribution of $x^i$ given that $y^i=c$ is given by a $\mathcal{N}(\mu_c,\Sigma_c)$ Gaussian distribution for a class-specific $\mu_c$ and $\Sigma_c$,
+\[
+p(x^i \cond y^i=c, \Theta) = \frac{1}{(2\pi)^{\frac{d}{2}}|\Sigma_c|^{\half}}\exp\left(-\half (x^i-\mu_c)^T\Sigma_c^{-1}(x^i-\mu_c)\right).
+\]
+Since we are distinguishing between the probability under $k$ different Gaussians to make our classification, this is called \emph{Gaussian discriminant analysis} (GDA). In the special case where we have a constant $\Sigma_c = \Sigma$ across all classes it is known as \emph{linear discriminant analysis} (LDA) since it leads to a linear classifier between any two classes (while the region of space assigned to each class forms a convex polyhedron as in $k$-means clustering and softmax classification). Another common restriction on the $\Sigma_c$ is that they are diagonal matrices, since this only requires $O(d)$ parameters instead of $O(d^2)$ (corresponding to assuming that the features are independent univariate Gaussians given the class label).
+Given a dataset $\mathcal{D}=\{(x^i, y^i)\}_{i=1}^n$, where $x^i\in\R^d$ and $y^i\in\{1,\ldots,k\}$, the maximum likelihood estimate (MLE) for the $\mu_c$ and $\Sigma_c$ in the GDA model is the solution to
+\[
+\argmax_{\mu_1,\mu_2,\dots,\mu_k,\Sigma_1,\Sigma_2,\dots,\Sigma_k} \prod_{i=1}^n p(x^i \cond y^i, \mu_{y^i},\Sigma_{y^i}).
+\]
+This means that the negative log-likelihood will be  equal to
+\alignStar{
+- \log p(X\cond y,\Theta) & = -\sum_{i=1}^n \log p(x^i \cond y^i, \mu_{y^i},\Sigma_{y^i})\\
+& = \sum_{i=1}^n \frac{1}{2}(x^i - \mu_{y^i})^T\Sigma_{y^i}^{-1}(x^i - \mu_{y^i}) + \half\sum_{i=1}^n \log|\Sigma_{y^i}| + \text{const.}
+}
+In class we stated the MLE for this model under the assumption that we use full covariance matrices and that each class has its own covariance.
+\enum{
+\item \blu{Derive the MLE for the GDA model under the assumption of \emph{common diagonal covariance} matrices}, $\Sigma_c = D$ ($d$ parameters). (Each class will have its own mean $\mu_c$.)
+\ans{actually LDA. use change of variables $u=1/x$.\\
+derivative wrt to $\triangledown\mu_c,\Sigma_c=0$\\
+\[\nabla_{\mu_c} - \log p(X\cond y,\Theta) = 0\]
+\[\sum_{i\in y_c}(x^i-\mu_c)^T \Sigma_c^{-1}(-1)=0\]
+\[\sum_{i\in y_c}x^i - \sum_{i\in y_c}\mu_c = \mathbf{0}\]
+\[\mu_c = \frac{\sum_{i\in y_c}x^i}{n_c}\]
+\[\nabla_{\Sigma} - \log p(X\cond y,\Theta) = 0\]
+Let $\Theta=\Sigma^{-1}$.
+\[\nabla_{\Theta} - \log p(X\cond y,\Theta) = 0\]
+\[\nabla_{\Theta} \left(
+\sum_{i} \frac{1}{2}(x^i - \mu_{y^i})^T \Theta (x^i - \mu_{y^i}) 
++ \half\sum_{i} \log|\Theta^{-1}| + \text{const.}
+\right) = 0\]
+\[\nabla_{\Theta} \left(
+\half\sum_{i} 
+\Tr\left((x^i - \mu_{y^i})\Theta (x^i - \mu_{y^i})^T\right)
+- \frac{n}{2}\log|\Theta|
+\right) = 0\]
+\[\nabla_{\Theta} \left(
+\half\Tr\sum_{i} 
+\left((x^i - \mu_{y^i})\Theta (x^i - \mu_{y^i})^T\right)
+- \frac{n}{2}\log|\Theta|
+\right) = 0\]
+\[\sum_{i} (x^i - \mu_{y^i}) (x^i - \mu_{y^i})^T
+- n\Theta^{-1} = 0\]
+\[\Sigma=\Theta^{-1} 
+= \frac{1}{n}\sum_{i} (x^i - \mu_{y^i}) (x^i - \mu_{y^i})^T\]
+}
+\item \blu{Derive the MLE for the GDA model under the assumption of \emph{individual scaled-identity} matrices}, $\Sigma_c = \sigma_c^2 I$ ($k$ parameters).
+\ans{no need to recalculate mean. slide on MLE for multivariate gaussians.\\
+\[\mu_c = \frac{\sum_{i\in y_c}x^i}{n_c}\]
+Let $\Sigma_c^{-1}=\sigma_c^{-2}I$.
+\[\nabla_{\sigma_c^{-2}} - \log p(X\cond y,\Theta) = 0\]
+\[\nabla_{\sigma_c^{-2}} \left(
+\Tr\sum_{i\in y_c}((x^i-\mu_c)(x^i-\mu_c)^T \sigma_c^{-2}I)
+-n_c\log|\sigma_c^{-2}I| \right) = 0\]
+\[\nabla_{\sigma_c^{-2}} \left(\sigma_c^{-2}
+\Tr\left(\sum_{i\in y_c}(x^i-\mu_c)(x^i-\mu_c)^T\right)
+-n_c\log\sigma_c^{-2d} \right) = 0\]
+\[\sum_{i\in y_c}(x^i-\mu_c)(x^i-\mu_c)^T
+-dn_c\sigma_c^{2} = 0\]
+\[\sigma_c^2=\frac{1}{dn_c}\sum_{i\in y_c}(x^i-\mu_c)(x^i-\mu_c)^T\]
+}
+\pagebreak
+\item When you run \emph{example\_generative} it loads a variant of the dataset in the figure that has 12 features and 10 classes. This data has been split up into a training and test set, and the code fits a $k$-nearest neighbour classifier to the training set then reports the accuracy on the test data (around $\sim 63\%$ test error). The $k$-nearest neighbour model does poorly here since it doesn't take into account the Gaussian-like structure in feature space for each class label. Write a function \emph{gda} that fits a GDA model to this dataset (using individual full covariance matrices). \blu{Hand in the function and report the test set accuracy}.
+\ans{replace KNN classifier section with GDA model\\
+what are shapes of mus and Sigmas?\\
+How do we return discrete labels once mus and Sigmas are learned?\\
+use boolean indexing\\
+how are entries of p populated?}
+\pagebreak
+\item In this question we would like to replace the Gaussian distribution of the previous problem with the more robust multivariate-t distribution so that it isn't influenced as much by the noisy data.
+Unlike the previous case, we don't have a closed-form solution for the parameters. However, if you run \emph{example\_student} it generates random noisy data and fits a multivariate-t model. By using the \emph{studentT} model, write a new function \emph{tda} that implements a generative model that is based on the multivariate-t distribution instead of the Gaussian distribution. \blu{Report the test accuracy  with this model.}
+}
+Hints: you may be able to substantially simplify the notation in the MLE derivations if you use the notation $\sum_{i \in y_c}$ to mean the sum over all values $i$ where $y^i = c$. Similarly, you can use $n_c$ to denote the number of cases where $y_i = c$, so that we have $\sum_{i \in y_c}1 = n_c$. Note that the determinant of a diagonal matrix is the product of the diagonal entries, and the inverse of a diagonal matrix is a diagonal matrix with the reciprocals of the original matrix along the diagonal. 
+
+For the implementation you can use the result from class regarding the MLE of a general multivariate Gaussian. At test time for GDA, you may find it more numerically reasonable to compare log probabilities rather than probabilities of different classes, and you may find it helpful to use the \emph{logdet}  function to compute the log-determinant in a more numerically-stable way than taking the log of the determinant. (Also, don't forget to center at training and test time.)
+
+For the last question, you may find it helpful to define an empty array that can be filled with $k$ \emph{DensityModel} objects  using:
+\begin{verbatim}
+   subModel = Array{DensityModel}(undef,k)
+\end{verbatim}
+
+\pagebreak
+
+\subsection{Empirical Bayes}
+
+ Consider the model
+\[
+y^i \sim \mathcal{N}(w^Tz^i,\sigma^2), \quad w_j \sim \mathcal{N}(0,\lambda^{-1}),
+\]
+where $z^i$ is a length-$k$ non-linear transformation of the features $x^i$ (like a polynomial basis or RBFs).
+The posterior distribution in this model has the form
+\[
+w \sim \mathcal{N}(w^+,\Theta^{-1}),
+\]
+where the posterior precision and mean are given by
+\alignStar{
+\Theta & = \frac{1}{\sigma^2}Z^TZ + \lambda I,\\
+w^+ & = \frac{1}{\sigma^2}\Theta^{-1}Z^Ty,
+}
+and $Z$ contains the $z^i$ vectors in the rows. The marginal likelihood in this model is given by
+\[
+p(y \cond X, \sigma^2,\lambda) = \frac{(\lambda)^{k/2}}{(\sigma\sqrt{2\pi})^n|\Theta|^{1/2}} \exp\left(-\frac{1}{2\sigma^2}\norm{Zw^+ - y}^2 - \frac \lambda 2\norm{w^+}^2\right).
+\]
+As discussed in class, the marginal likelihood can be used to optimize hyper-parameters like $\sigma$, $\lambda$, and even the basis $Z$.
+
+The demo \emph{example\_basis} loads a dataset and fits a degree-2 polynomial to it. Normally we would use a test set to choose the degree of the polynomial but here we'll use the marginal likelihood of the training set. Write a function, \emph{leastSquaresEmpiricalBaysis}, that uses the marginal likelihood to choose the degree of the polynomial as well as the parameters $\lambda$ and $\sigma$ (you can restrict your search for $\lambda$ and $\sigma$ to powers of 2). \blu{Hand in your code and report the marginally most likely values of the degree, $\sigma$, and $\lambda$.} 
+\ans{take log of marginal likelihood}
+
+\pagebreak
+
+\section{Markov Models}
+
+Coming soon.
+
+\section{Mixture Models}
+
+Coming soon.
+
+\section{Very-Short Answer Questions}
+
+Coming soon.
+
+\pagebreak
+
+\section*{GPU Access}
+
+
+We applied for UBC to fund some GPUs (RTX 3070 8GB) and a lot of RAM (192 GB) for use by students for their coursework. This is the first semester that these resources will be used, so there may be a learning curve to use these (from your side and our side). If you would like to use these for your course project, please make a private post on Piazza with the following information:
+\enum{
+\item Names of people on the project.
+\item Estimated number of GPU/CPU hours.
+\item Roughly how much memory your jobs will need.
+\item Roughly how much disk usage you will need.
+\item Are there datasets you plan to use that other groups might also be using?
+}
+
+\end{document}
