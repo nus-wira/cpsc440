@@ -1,0 +1,92 @@
+\section{Part 3}
+\subsection*{Gaussian Density Estimation}
+Modeling continuous variable samples\\
+Assume symmetric, no outliers, no truncation, uni-modal\\
+Mean and variance parameterization\\
+Inverse of CDF to Uniform samples
+\[\Pr(X\mid\mu,\sigma^2)=\frac{1}{(\sigma\sqrt{2\pi})^n}\exp{-\frac{\sum_i^n(x^i-\mu)^2}{2\sigma^2}}\]
+\subsection*{MLE and MAP}
+MLE for mean and variance is that of the samples\\
+Unless $x^i$ are equal, so NLL not bounded\\
+Conjugate Prior is Gaussian\\
+Posterior Predictive is Gaussian
+\subsection*{Multivariate Gaussians}
+Generalize Univariate Gaussian\\
+\[\Pr(x^i\mid\mu,\Sigma)
+=\frac{1}{(2\pi)^{\frac{d}{2}}|\Sigma|^{\frac{1}{2}}}
+\exp-\frac{1}{2}(x^i-\mu)^T \Sigma^{-1} (x^i-\mu)\]
+Mean vector $\mu$ and positive-definite covariance matrix $\Sigma$\\
+Positive definite = all eigenvalues are positive\\
+Prod of ind. Gaussians == diagonal $\Sigma$\\
+Models correl. btw. pairs of variables w non-zero off-diagonal
+\subsection*{Inference Multivariate Gaussians}
+Affine transformations are Gaussian\\
+\[x\sim\mathcal{N}(\mu,\Sigma), z=Ax+b \Rightarrow z\sim\mathcal{N}(A\mu+b,A\Sigma A^T)\]
+Can go high to low dimension like in PCA\\
+Marginals and conditionals are Gaussian\\
+Can transform samples from ind. Gaussians to multivariate Gaussians
+\subsection*{Conditional Independence}
+Precision Matrix $\Theta=\Sigma^{-1}$\\
+Conditional Independence by off-diagonals of $\Theta$\\
+$\Theta_{ij}\neq 0 \Leftrightarrow$ edge exists in graph\\
+Variables cond. ind. if all paths blocked by cond. variable
+\subsection*{Learning Gaussians}
+MLE: $\mu$ = mean of data, $\Sigma$ = Cov. of data\\
+Posterior and posterior predictive under Gaussian prior on mean is Gaussian\\
+Graphical Lasso uses L1-regularization of Precision Matrix\\
+Sparse Graph represents Conditional Independence
+\subsection*{Supervised Learning}
+Generative classifier is Gaussian Discriminant Analysis (GDA)\\
+Assume $x^i\mid y^i$ is Gaussian
+\[\Pr(x^i,y^i=c)=\pi_c\Pr(x^i\mid \mu_c,\Sigma_c)\]
+Common $\Sigma=\Sigma_c$ is LDA\\
+If class proportions $\pi_c$ are equal, class label determined by nearest mean,
+like "1-nearest neighbour"/$k$-keamns clustering.\\
+L2-regularized least squares obtained using Gaussian likelihood and prior
+\subsection*{Bayesian Regression}
+Bayesian Linear Regression - Gaussian posterior\\
+\[y^i\sim\mathcal{N}(w^T x^i,\sigma^2), w_j\sim\mathcal{N}(0,\lambda^{-1})\]
+Then the posterior $w\mid X,y$ is a Gaussian centered at $w_{MAP}$.\\
+Posterior predictive $\tilde{y}\mid X,y,\tilde{x}$ 
+is also Gaussian ("regression w error bars") centered at $w_{MAP}^T \tilde{x}$\\
+\subsection*{Empirical Bayes}
+Optimize marginal likelihood $\Pr(y\mid X,\sigma^2,\lambda)$.
+\begin{itemize}
+    \item Automatic relevance determination (ARD): 
+    Can also have separate $\lambda_j,\sigma^i$ and optimize
+    \item Bayesian Occam's razor: encourage sparsity and simplicity, 
+    prefers simpler models that fit data well
+    \item Bayesian Logistic Regression: Gaussian prior not conjugate, need Approx
+\end{itemize}
+\subsection*{Rejection Sampling}
+Features
+\begin{enumerate}
+    \item Ability to evaluate unnormalized $\tilde{p}(x)$.
+    \item Easy to sample from $q$.
+    \item Upper bound $M$ on $\tilde{p}/q$.
+\end{enumerate}
+Algorithm
+\begin{enumerate}
+    \item Sample $x$ from $q(x)$.
+    \item Sample $u$ from $\mathcal{U}(0,1)$.
+    \item Keep sample if $u\leq\frac{\tilde{p}(x)}{Mq(x)}$.
+\end{enumerate}
+Exact samples from complicated dsb\\
+rejects too many samples in high dimensions
+\subsection*{Importance Sampling}
+Sample from $q$ but reweight by $p/q$ to compute expectation $\mathbb{E}_p[f(x)]$.\\
+Reweights samples from wrong dsb\\
+High variance in high dimensions
+\subsection*{Monte Carlo methods}
+Approx $p$ w empirical dsb over samples
+\[p(x)\approx\frac{1}{n}\sum_i\mathcal{I}[x^i=x]\]
+Turns inference into sampling
+\subsection*{Laplace Approximation}
+Variational methods approximate $p$ w simpler dsb $q$\\
+\[p(x)\approx q(x)\]
+Turns inference into optimization\\
+Laplace approx - Gaussian centered at MAP aggrees w first 2 derivatives of NLL
+\subsection*{End-to-End Learning}
+Neural Networks w continuous output\\
+Typically trained using squared error, corresponding to Gaussian likelihood\\
+End-to-end: Neural network do all steps, each step in "pipeline" as differentiable operator

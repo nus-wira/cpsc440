@@ -8,7 +8,9 @@ data = load("nonLinear.jld")
 
 # Fit least squares model
 include("leastSquares.jl")
-model = leastSquaresBasis(X,y,2)
+include("leastSquaresEmpiricalBayes.jl")
+LL, p, lambda, sigma = leastSquaresEmpiricalBayes(X,y)
+model = leastSquaresBasis(X,y,p)
 
 # Report the error on the test set
 using Printf
@@ -19,6 +21,7 @@ testError = sum((yhat - ytest).^2)/t
 
 # Plot model
 using PyPlot
+pygui(true)
 figure()
 plot(X,y,"b.")
 plot(Xtest,ytest,"g.")

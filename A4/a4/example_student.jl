@@ -1,4 +1,5 @@
 using LinearAlgebra, PyPlot
+pygui(true)
 
 # Generate data from a Gaussian with outlier
 n = 250

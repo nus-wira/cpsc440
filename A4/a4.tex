@@ -34,6 +34,7 @@
 \def\half{\frac 1 2}
 \def\cond{\; | \;}
 \DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\diag}{diag}
 
 % LaTeX
 \newcommand{\fig}[2]{\includegraphics[width=#1\textwidth]{a4f/#2}}
@@ -55,8 +56,8 @@ For this assignment you can work in groups of 1-2. However, please only hand in 
 
 
 \blu{\enum{
-\item Name(s):
-\item Student ID(s):
+\item Name(s): Wira Azmoon Ahmad
+\item Student ID(s): 55246318
 }}
 
 
@@ -167,36 +168,28 @@ This means that the negative log-likelihood will be  equal to
 In class we stated the MLE for this model under the assumption that we use full covariance matrices and that each class has its own covariance.
 \enum{
 \item \blu{Derive the MLE for the GDA model under the assumption of \emph{common diagonal covariance} matrices}, $\Sigma_c = D$ ($d$ parameters). (Each class will have its own mean $\mu_c$.)
-\ans{actually LDA. use change of variables $u=1/x$.\\
-derivative wrt to $\triangledown\mu_c,\Sigma_c=0$\\
+\ans{
 \[\nabla_{\mu_c} - \log p(X\cond y,\Theta) = 0\]
 \[\sum_{i\in y_c}(x^i-\mu_c)^T \Sigma_c^{-1}(-1)=0\]
 \[\sum_{i\in y_c}x^i - \sum_{i\in y_c}\mu_c = \mathbf{0}\]
 \[\mu_c = \frac{\sum_{i\in y_c}x^i}{n_c}\]
-\[\nabla_{\Sigma} - \log p(X\cond y,\Theta) = 0\]
-Let $\Theta=\Sigma^{-1}$.
-\[\nabla_{\Theta} - \log p(X\cond y,\Theta) = 0\]
-\[\nabla_{\Theta} \left(
-\sum_{i} \frac{1}{2}(x^i - \mu_{y^i})^T \Theta (x^i - \mu_{y^i}) 
-+ \half\sum_{i} \log|\Theta^{-1}| + \text{const.}
+Let $D=\diag{\sigma^2}$.
+\[\nabla_{\sigma^{-2}} - \log p(X\cond y,\Theta) = 0\]
+\[\nabla_{\sigma^{-2}} \left(
+\sum_{i=1}^n \frac{1}{2}(x^i - \mu_{y^i})^T D^{-1} (x^i - \mu_{y^i}) 
+- \half\sum_{i} \log|D^{-1}| + \text{const.}
 \right) = 0\]
-\[\nabla_{\Theta} \left(
-\half\sum_{i} 
-\Tr\left((x^i - \mu_{y^i})\Theta (x^i - \mu_{y^i})^T\right)
-- \frac{n}{2}\log|\Theta|
+\[\nabla_{\sigma^{-2}} \left(
+\sum_{i=1}^n \sum_{j=1}^d\frac{1}{2}(x_j^i - \mu_{y^i,j})^2 \sigma_j^{-2}
+- \half\sum_{i=1}^n \sum_{j=1}^d \log\sigma_j^{-2}
 \right) = 0\]
-\[\nabla_{\Theta} \left(
-\half\Tr\sum_{i} 
-\left((x^i - \mu_{y^i})\Theta (x^i - \mu_{y^i})^T\right)
-- \frac{n}{2}\log|\Theta|
-\right) = 0\]
-\[\sum_{i} (x^i - \mu_{y^i}) (x^i - \mu_{y^i})^T
-- n\Theta^{-1} = 0\]
-\[\Sigma=\Theta^{-1} 
-= \frac{1}{n}\sum_{i} (x^i - \mu_{y^i}) (x^i - \mu_{y^i})^T\]
+\[\sum_{i=1}^n (\diag(x^i - \mu_{y^i}))(x^i - \mu_{y^i})
+- n\sigma^2 = 0\]
+\[\sigma^2 = \frac{1}{n} \sum_{i=1}^n (\diag(x^i - \mu_{y^i}))(x^i - \mu_{y^i})\]
+\[\Sigma_c=D=\diag\sigma^2\]
 }
 \item \blu{Derive the MLE for the GDA model under the assumption of \emph{individual scaled-identity} matrices}, $\Sigma_c = \sigma_c^2 I$ ($k$ parameters).
-\ans{no need to recalculate mean. slide on MLE for multivariate gaussians.\\
+\ans{
 \[\mu_c = \frac{\sum_{i\in y_c}x^i}{n_c}\]
 Let $\Sigma_c^{-1}=\sigma_c^{-2}I$.
 \[\nabla_{\sigma_c^{-2}} - \log p(X\cond y,\Theta) = 0\]
@@ -206,20 +199,24 @@ Let $\Sigma_c^{-1}=\sigma_c^{-2}I$.
 \[\nabla_{\sigma_c^{-2}} \left(\sigma_c^{-2}
 \Tr\left(\sum_{i\in y_c}(x^i-\mu_c)(x^i-\mu_c)^T\right)
 -n_c\log\sigma_c^{-2d} \right) = 0\]
-\[\sum_{i\in y_c}(x^i-\mu_c)(x^i-\mu_c)^T
+\[\Tr\left(\sum_{i\in y_c}(x^i-\mu_c)(x^i-\mu_c)^T\right)
 -dn_c\sigma_c^{2} = 0\]
-\[\sigma_c^2=\frac{1}{dn_c}\sum_{i\in y_c}(x^i-\mu_c)(x^i-\mu_c)^T\]
+\[\sigma_c^2=\frac{1}{dn_c}
+\Tr\left(\sum_{i\in y_c}(x^i-\mu_c)(x^i-\mu_c)^T\right)\]
 }
 \pagebreak
 \item When you run \emph{example\_generative} it loads a variant of the dataset in the figure that has 12 features and 10 classes. This data has been split up into a training and test set, and the code fits a $k$-nearest neighbour classifier to the training set then reports the accuracy on the test data (around $\sim 63\%$ test error). The $k$-nearest neighbour model does poorly here since it doesn't take into account the Gaussian-like structure in feature space for each class label. Write a function \emph{gda} that fits a GDA model to this dataset (using individual full covariance matrices). \blu{Hand in the function and report the test set accuracy}.
-\ans{replace KNN classifier section with GDA model\\
-what are shapes of mus and Sigmas?\\
-How do we return discrete labels once mus and Sigmas are learned?\\
-use boolean indexing\\
-how are entries of p populated?}
+\ans{
+\texttt{Test Error with GDA: 0.416}
+\lstinputlisting{a4/gda.jl}
+}
 \pagebreak
 \item In this question we would like to replace the Gaussian distribution of the previous problem with the more robust multivariate-t distribution so that it isn't influenced as much by the noisy data.
 Unlike the previous case, we don't have a closed-form solution for the parameters. However, if you run \emph{example\_student} it generates random noisy data and fits a multivariate-t model. By using the \emph{studentT} model, write a new function \emph{tda} that implements a generative model that is based on the multivariate-t distribution instead of the Gaussian distribution. \blu{Report the test accuracy  with this model.}
+\ans{
+\texttt{Test Error with TDA: 0.195}
+\lstinputlisting{a4/tda.jl}
+}
 }
 Hints: you may be able to substantially simplify the notation in the MLE derivations if you use the notation $\sum_{i \in y_c}$ to mean the sum over all values $i$ where $y^i = c$. Similarly, you can use $n_c$ to denote the number of cases where $y_i = c$, so that we have $\sum_{i \in y_c}1 = n_c$. Note that the determinant of a diagonal matrix is the product of the diagonal entries, and the inverse of a diagonal matrix is a diagonal matrix with the reciprocals of the original matrix along the diagonal. 
 
@@ -255,21 +252,216 @@ p(y \cond X, \sigma^2,\lambda) = \frac{(\lambda)^{k/2}}{(\sigma\sqrt{2\pi})^n|\T
 As discussed in class, the marginal likelihood can be used to optimize hyper-parameters like $\sigma$, $\lambda$, and even the basis $Z$.
 
 The demo \emph{example\_basis} loads a dataset and fits a degree-2 polynomial to it. Normally we would use a test set to choose the degree of the polynomial but here we'll use the marginal likelihood of the training set. Write a function, \emph{leastSquaresEmpiricalBaysis}, that uses the marginal likelihood to choose the degree of the polynomial as well as the parameters $\lambda$ and $\sigma$ (you can restrict your search for $\lambda$ and $\sigma$ to powers of 2). \blu{Hand in your code and report the marginally most likely values of the degree, $\sigma$, and $\lambda$.} 
-\ans{take log of marginal likelihood}
+\ans{
+\lstinputlisting{a4/leastSquaresEmpiricalBayes.jl}
+\[p=5,\sigma=0.5,\lambda=128\]
+}
 
 \pagebreak
 
 \section{Markov Models}
 
-Coming soon.
+\subsection{Inference with Discrete States}
+
+The function \emph{example\_markov.jl} loads the initial state probabilities and transition probabilities for a Markov chain model,
+\[
+p(x_1,x_2,\dots,x_d) = p(x_1)\prod_{j=2}^{d}{p(x_j\cond x_{j-1})},
+\]
+corresponding to the ``grad student Markov chain'' from class.
+
+\enum{
+\item Write a function, \emph{sampleAncestral}, that uses ancestral sampling to sample a sequence $x$ from this Markov chain of length $d$. \blu{Hand in this code and report the univariate marginal probabilities for time 50 using a Monte Carlo estimate based on 10000 samples.}\\
+Hint: you can use \emph{sampleDiscrete} in \emph{misc.jl} to sample from a discrete probability mass function using the inverse transform method.
+\ans{
+\lstinputlisting{a4/sampleAncestral.jl}
+\[\Pr(x_{50})=[0.0127, 0.3918, 0.0154, 0.0056, 0.1061, 0.0823, 0.3861]\]
+}
+\pagebreak
+\item Write a function, \emph{marginalCK}, that uses the CK equations to compute the exact univariate marginals up to a given time $d$. \blu{Hand in this code, report all exact univariate marginals at time 50, and report how this differs from the marginals in the previous question.}
+\ans{
+\lstinputlisting{a4/marginalCK.jl}
+\texttt{marginalCK(p1, pt, 50) = [0.013932459379462246, 0.3862968631380267, 0.017023638417965385, 0.005423766509870507, 0.10414317829675787, 0.0842973337907814, 0.3888827604671344]}\\
+The values are very close to those obtained from the Monte Carlo simulation.
+}
+\item What is the state $c$ with highest marginal probability, $p(x_j = c)$, for each time $j$?
+\ans{
+For $j<50$, this is state $c=2$. From $j\geq 50$, this is state $c=7$.
+}
+\item Write a function, \emph{viterbiDecode}, that uses the Viterbi decoding algorithm for Markov chains to find the optimal decoding up to a time $d$. \blu{Hand in this code and report the optimal decoding of the Markov chain up to time 50 and up to 100.}
+\ans{
+\lstinputlisting{a4/viterbiDecode.jl}
+\texttt{viterbiDecode(p1, pt, 50) = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]\\
+viterbiDecode(p1, pt, 100) = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 
+2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 7]
+}
+}
+\pagebreak
+\item \blu{Report all the univariate conditional probabilities at time 50 if the student starts in grad school, $p(x_{50} = c \cond  x_1 = 3)$ for all $c$}. Hint: you should be able to do this by changing the input to the CK equations.
+\ans{\\
+\texttt{marginalCK(p13, pt, 50) = [0.00833562744038283, 0.23111584827032783, 0.01018545222724647, 0.008488559291948646, 0.1831155794085353, 0.16987617289442358, 0.38888276046713466]}
+}
+\item \blu{Report for all $c$ the univariate conditional probabilities $p(x_5 = c \cond  x_{10} = 6)$ (``where  you were likely to be 5 years after graduation if you ended up in academia after 10 years'') obtained using a Monte Carlo estimate based on 10000 samples and rejection sampling. Also report the number of samples accepted among the 10000 samples.}
+\ans{\\
+\texttt{monteCarloRejection(p1, pt) = [0.004914004914004914, 0.029484029484029485, 0.19656019656019655, 0.0687960687960688, 0.16953316953316952, 0.5307125307125307, 0.0]}\\
+with 407 accepted samples.
+}
+\item \blu{Give code implementing a dynamic programming approach to exactly compute $p(x_5 = c \cond  x_{10} = 6)$, and report the exact values for all $c$.}
+\ans{
+\lstinputlisting{a4/forwardCondition.jl}
+\texttt{forwardCondition(p1, pt, 5) = [0.0015535818661923315, 0.03392822926174592, 0.24774224920740526, 0.05807013200237585, 0.16133831091031867, 0.49736749675196207, 0.0]}
+}
+\item \blu{Why is $p(x_j = 7 \cond x_{10} = 6)$ equal to zero for all $j$ less than $10$?}
+\ans{
+It is impossible to come back to life after being deceased, as given by the probability distribution of the last row of the transition matrix.
+}
+}
+Hint: for some of the quesitons you may find it helpful to use a $k$ by $d$ matrix $M$ to represent a dynamic programming table
+
+
+\pagebreak
+
+\subsection{Markov Chain Monte Carlo}
+
+If you run \emph{example\_MH.jl}, it loads a set of images of `2' and `3' digits. It then runs the Metropolis MCMC algorithm to try to generate samples from the posterior over $w$, in a logistic regression model with a Gaussian prior. Once the samples are generated, it makes a histogram of the samples for several of the variables.\footnote{The ``positive'' variables are some of the positive weights  when you fit an L2-regularized logistic regression model to the this data. The ``negative'' variables are some of the negative regression weights in that model, and the ``neutral'' ones are set to 0 in that model.}
+
+\enum{
+\item \blu{Why would the samples coming from the Metropolis algorithm not give a good approximation to the posterior?}
+\ans{
+The variance is too large, causing new samples to be rejected and not contribute to the approximation.
+}
+\item Modify the proposal used by the demo to $\hat{w} \sim \mathcal{N}(w,(1/100) I)$ instead of $\hat{w} \sim \mathcal{N}(w,I)$. \blu{Hand in your code and the update histogram plot.}
+\ans{
+\texttt{wHat = w + randn(d,1) / 10}\\
+\centerfig{.7}{mcmc100.png}
+}
+\item Modify the proposal to use $\hat{w} \sim \mathcal{N}(w,(1/10000) I)$. \blu{Do you think this performs better or worse than the previous choice? (Briefly explain.)}
+\ans{
+It performs worse as it does not provide a good representation of the sample space, exploring less due to the smaller variance.
+}
+}
+
+\pagebreak
+
+\subsection{D-Separation}
+
+Consider the DAG model below, for distinguishing between different causes of shortness-of-breath (dyspnoea) and the causes of an abnormal lung x-ray, while  modelling potential causes of these diseases too (whether the person is a smoker or had a `visit' to a country with a high degree to tuberculosis).
+
+\centerfig{.7}{bayesNet}
+
+We'll assume that the distribution over the variables is ``faithful" to the graph, meaning that variables are conditionally independent if and only if the graph structure implies their independence. Under this assumption, \blu{say why each of the following conditional independence statements is true or false (provide a very-brief justification)}:
+\begin{enumerate}
+\item (Smoking) $\perp$ (Bronchitis).
+\item (Smoking) $\perp$ (Dyspnoea).
+\item (Tuberculosis) $\perp$ (Lung Cancer).
+\item (Abnormal X-Ray) $\perp$ (Dyspnoea).
+\item (Abnormal X-Ray) $\perp$ (Visit) $|$ (Tuberculosis).
+\item (Bronchitis) $\perp$ (Lung Cancer) $|$ (Smoking).
+\item (Tuberculosis) $\perp$ (Lung Cancer) $|$ (Dyspnoea).
+\item (Visit,Smoking) $\perp$ (Abnormal X-Ray, Dyspnoea) $|$ (Tuberculosis, Lung Cancer, Bronchitis)
+\item (Smoking) $\perp$ (Visit) $|$ (Dyspnoea).
+\item (Tuberculosis) $\perp$ (Bronchitis) $|$ (Abnormal X-Ray).
+\end{enumerate}
+
+\pagebreak
+
+\ans{
+\begin{enumerate}
+\item False. Smoking directly affects Bronchitis.
+\item False. Smoking affects Dyspnoea via Lung Cancer and Bronchitis.
+\item True. They have no common parent and unobserved children.
+\item False. They have common unobserved parents Tuberculosis, Lung Cancer.
+\item True. Dependency of Visit with Abnormal X-Ray is broken by Tuberculosis.
+\item True. Their single common observed parent Smoking breaks their dependency.
+\item False. Knowing Dyspnoea means knowing Tuberculosis can give information about Lung Cancer.
+\item True. Dependency of Visit, Smoking with Abnormal X-Ray, Dyspnoea is broken by Tuberculosis, Lung Cancer, Bronchitis.
+\item False. Observing Dyspnoea, the grandchild of Visit and Smoking, creates dependence between Visit and Smoking.
+\item False. Knowing Abnormal X-Ray would have Tuberculosis dependent with Lung Cancer, which is then dependent on Bronchitis without knowing Smoking.
+\end{enumerate}
+}
+
+\pagebreak
 
 \section{Mixture Models}
 
-Coming soon.
+Cancelled.
+
+\pagebreak
 
 \section{Very-Short Answer Questions}
 
-Coming soon.
+\enum{
+\item What is the relationship between using a product of Gaussians and using a multivariate Gaussian?
+\ans{
+Product of Gaussians is a special case of the multivariate Gaussian where each variable follows an independent Gaussian with their own mean and variance.
+}
+\item How does the affine property allow us to sample from multivariate Gaussians?
+\ans{
+We can sample from a simpler Gaussian such as $\mathcal{N}(0,I)$ and transform the sample so it comes from the desired Gaussian using the affine property.
+}
+\item With a Gaussian likelihood, a Gaussian prior for its mean, and a fixed covariance, how do we know that the posterior predictive will also be a Gaussian?
+\ans{
+The Gaussian prior is the conjugate prior for the Gaussian, so we know the posterior and posterior predictive are also Gaussian.
+}
+\item How do the sparsity patterns of the covariance and precision matrix in a multivariate Gaussian relate to independence and conditional independence in the models?
+\ans{
+Sparsity in the covariance matrix would imply independent variables, while sparsity in the precision matrix implies conditional independence, implied from the graph structure that can be drawn from it.
+}
+\item In linear discriminant analysis, why might we not assign a point to its closest mean?
+\ans{
+The class proportions $\pi_c$ might not be equal, and thus the most likely classification is not the one with the closest mean.
+}
+\pagebreak
+\item The maximum of the posterior predictive in Bayesian linear regression gives the same prediction as if we used the MAP estimate. What is a reason we might use Bayesian linear regression anyways?
+\ans{
+We may want the variance of predictions, unavailable from just the MAP estimate.
+}
+\item What is the key difference between Monte Carlo approximations and variational approximations?
+\ans{
+Monte Carlo uses the empirical distribution from sampling, while variational tries to approximate the distribution with a "closest" distribution from a tractable family, such as Gaussians.
+}
+\item What is a key advantage of ``end-to-end'' training of computer vision system?
+\ans{
+It is much easier to write optimization code for the entire pipeline instead of separate components.
+}
+\item What are your 3 favourite properties of the exponential family?
+\ans{
+\begin{enumerate}
+   \item They are guaranteed to have conjugate priors.
+   \item The sufficient statistics of the data $s(X)$ can be drawn and contains everything needed for learning.
+   \item They provide simple/intuitive closed form solutions for the MLE.
+\end{enumerate}
+}
+\item What is the difference between computing marginals and computing the stationary distribution of a Markov chain.
+\ans{
+The marginals are distributions at any point of time, while the stationary distribution is one that does not change over time. Under certain conditions, the marginals converge to a stationary distribution as time goes to $\infty$.
+}
+\pagebreak
+\item What is the cost of generating a sample from a Markov chain of length $d$ with $k$ possible states for each time? What is the cost of decoding?
+\ans{\\\\
+Sampling:
+\[O(dk)\]
+$O(k)$ for each $d$ times.\\\\
+Decoding:
+\[O(dk^2)\]
+$O(k^2)$ computing all $M_j(x_j)$ for a fixed $j, d$ times.
+}
+\item In what setting is it unnecessary to include the $q$ function in the Metropolis-Hastings acceptance probability?
+\ans{
+If $q$ is symmetric, then $q(x \cond \hat{x})=q(\hat{x} \cond x)$ and their ratio can be ignored.
+}
+\item What is ``explaining away''?
+\ans{
+Knowing one parent can make other parents more or less likely.
+}
+\item If two variables are not d-separated, are they necessarily dependent? If two variables are d-separated, are they necessarily independent?
+\ans{
+No. Yes. (Respectively)
+}
+\item Describe how we could use ancestral sampling to sample from the joint density over $x$ and $y$ defined by a Gaussian discriminant analysis model.
+\ans{
+First sample $y$ from $\Pr(y)$, then sample $x$ from $\Pr(x\cond y)$.
+}
+}
 
 \pagebreak
 
