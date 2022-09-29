@@ -2,7 +2,7 @@
 \subsection*{Binary Density Estimation}
 Modeling $\Pr(x=1)$ given IID samples $x^1,x^2,\dots,x^n$.
 \subsection*{Bernoulli Parameterization}
-Bernoulli Distribution over binary variable, parametrized by $\theta$.
+Bernoulli Distribution over binary variable, parameterized by $\theta$.
 \[\Pr(x\mid\theta)=\theta^x (1-\theta)^{1-x}\]
 \subsection*{Binary Inference Tasks}
 \begin{enumerate}
@@ -49,7 +49,7 @@ MLE is convex optimization, gradient descent.
 \[S(x)=\frac{1}{1+e^{-x}}\in(0,1)\]
 \[\tanh(x)=\frac{e^x-e^{-x}}{e^x+e^{-x}}\in(-1,1)\]
 \subsection*{Fundamental Trade-Off}
-Simple models no overfit may underfit, complicated models vice versa.
+Simple models don't overfit but may underfit, complicated models vice versa.
 \subsection*{Neural Networks}
 One Layer
 \[\tilde{y}=\sum_{c=1}^k v_c h(w_c^T x_i + b_c) + \beta\]
@@ -72,7 +72,7 @@ Code generates gradient code (chain rule)\\
 Advantage - get gradient for same cost as function\\
 Disadvantage - Store all intermediate calculations, same cost as computing function (may have lower cost to calculate gradient for some functions)
 \subsection*{CNN}
-Convolutions transfrm images, can approximate directional derivatives and integrals at different scales.\\
+Convolutions transform images, can approximate directional derivatives and integrals at different scales.\\
 Convolution layers, max pooling layers, reduces no. of params, gives spatial invariance
 \subsection*{Autoencoders}
 Output is input
